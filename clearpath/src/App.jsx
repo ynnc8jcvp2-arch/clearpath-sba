@@ -8,6 +8,11 @@ import {
   Factory, Briefcase, Users, Printer, ExternalLink,
   ChevronRight, ArrowRight
 } from 'lucide-react';
+import { LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import TermSheetTemplate from './components/TermSheetTemplate';
+import GenerativeFeatures from './components/GenerativeFeatures';
+import PremiumForm from './components/PremiumForm';
+import { exportTermSheetPDF, exportTermSheetHTML, printTermSheet } from './utils/pdfExport';
 
 // ── AI via Vercel serverless — Claude claude-sonnet-4-6 ──
 async function fetchAI(prompt, systemInstruction = '', jsonMode = false) {
@@ -59,38 +64,46 @@ const Ad = ({ h = 'h-[88px]', label = 'Advertisement' }) => (
 );
 
 // ── Term Sheet Preview Modal ──
-function TermSheetModal({ html, onClose }) {
-  const blobUrl = useMemo(() => html
-    ? URL.createObjectURL(new Blob([html], { type: 'text/html' }))
-    : null, [html]);
+function TermSheetModal({ data, onClose }) {
+  const handlePrintTermSheet = () => {
+    printTermSheet('termsheet-content');
+  };
 
-  const download = () => {
-    const a = document.createElement('a');
-    a.href = blobUrl;
-    a.download = 'ClearPath_TermSheet.html';
-    a.click();
+  const handleExportPDF = () => {
+    exportTermSheetPDF('termsheet-content', 'ClearPath_TermSheet.pdf');
+  };
+
+  const handleExportHTML = () => {
+    exportTermSheetHTML('termsheet-content', 'ClearPath_TermSheet.html');
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-black/80">
-      <div className="bg-[#0A2540] border-b border-[#1B3A6B] h-12 px-4 flex items-center justify-between shrink-0">
+    <div className="fixed inset-0 z-50 flex flex-col bg-black/80 overflow-y-auto">
+      <div className="bg-[#0A2540] border-b border-[#1B3A6B] sticky top-0 px-4 py-3 flex items-center justify-between shrink-0">
         <span className="text-white text-xs font-bold uppercase tracking-wide">Term Sheet Preview</span>
         <div className="flex items-center gap-2">
           <button
-            onClick={() => { const w = window.open(blobUrl); if (w) setTimeout(() => w.print(), 600); }}
+            onClick={handlePrintTermSheet}
             className={T.btnSecondary + ' text-xs px-3 py-1.5'}
           >
             <Printer className="w-3.5 h-3.5" /> Print
           </button>
-          <button onClick={download} className={T.btnPrimary + ' text-xs px-3 py-1.5'}>
-            <Download className="w-3.5 h-3.5" /> Download
+          <button onClick={handleExportPDF} className={T.btnPrimary + ' text-xs px-3 py-1.5'}>
+            <Download className="w-3.5 h-3.5" /> PDF
+          </button>
+          <button onClick={handleExportHTML} className={T.btnSecondary + ' text-xs px-3 py-1.5'}>
+            <Download className="w-3.5 h-3.5" /> HTML
           </button>
           <button onClick={onClose} className="ml-2 text-slate-300 hover:text-white transition-colors duration-150 cursor-pointer">
             <X className="w-5 h-5" />
           </button>
         </div>
       </div>
-      <iframe src={blobUrl} className="flex-1 w-full bg-white" title="Term Sheet" />
+      <div className="flex-1 w-full bg-white overflow-y-auto">
+        <div className="max-w-8.5in mx-auto">
+          <TermSheetTemplate data={data} />
+        </div>
+      </div>
     </div>
   );
 }
@@ -381,15 +394,17 @@ function AmortizationTerminal({ nav }) {
   const [prog,     setProg]     = useState('7a_10');
   const [mfr,      setMfr]      = useState(false);
 
-  const [notes,         setNotes]         = useState('');
-  const [parsing,       setParsing]       = useState(false);
-  const [narrative,     setNarrative]     = useState('');
-  const [officerEmail,  setOfficerEmail]  = useState('');
-  const [compiling,     setCompiling]     = useState(false);
-  const [termSheetHtml, setTermSheetHtml] = useState(null);
-  const [modalOpen,     setModalOpen]     = useState(false);
-  const [copied,        setCopied]        = useState(null);
-  const [error,         setError]         = useState(null);
+  const [extractNotes,      setExtractNotes]      = useState('');
+  const [extracting,        setExtracting]        = useState(false);
+  const [extractStatus,     setExtractStatus]     = useState(null);
+  const [narrative,         setNarrative]         = useState('');
+  const [officerEmail,      setOfficerEmail]      = useState('');
+  const [generating,        setGenerating]        = useState(false);
+  const [generateStatus,    setGenerateStatus]    = useState(null);
+  const [termSheetData,     setTermSheetData]     = useState(null);
+  const [modalOpen,         setModalOpen]         = useState(false);
+  const [copied,            setCopied]            = useState(null);
+  const [error,             setError]             = useState(null);
 
   const principal   = parseFloat(amount.replace(/,/g, '')) || 0;
   const annualRate  = parseFloat(rateStr) / 100 || 0;
@@ -443,11 +458,13 @@ function AmortizationTerminal({ nav }) {
   };
 
   const handleExtract = async () => {
-    if (!notes.trim()) return;
-    setParsing(true); setError(null);
+    if (!extractNotes.trim()) return;
+    setExtracting(true);
+    setError(null);
+    setExtractStatus(null);
     try {
       const data = await fetchAI(
-        `Extract commercial loan parameters from: "${notes}"\n\nReturn JSON: { amount, program (7a_25|7a_10|express|504), years, assessment }`,
+        `Extract commercial loan parameters from: "${extractNotes}"\n\nReturn JSON: { amount, program (7a_25|7a_10|express|504), years, assessment }`,
         'Commercial loan structuring assistant. Return valid JSON only.',
         true
       );
@@ -455,23 +472,85 @@ function AmortizationTerminal({ nav }) {
       if (data.program && PROGRAMS.some(p => p.id === data.program)) setProg(data.program);
       if (data.years)    setYears(data.years);
       if (data.assessment) setNarrative(data.assessment);
-    } catch (e) { setError(e.message); }
-    finally { setParsing(false); }
+      setExtractStatus('success');
+      setTimeout(() => setExtractStatus(null), 3000);
+    } catch (e) {
+      setError(e.message);
+      setExtractStatus('error');
+    }
+    finally { setExtracting(false); }
   };
 
   const handleCompile = async () => {
-    setCompiling(true); setError(null);
+    setGenerating(true);
+    setError(null);
+    setGenerateStatus(null);
     try {
       const progLabel = PROGRAMS.find(p => p.id === prog)?.label;
-      let html = await fetchAI(
-        `Generate a formal Executive Summary and Term Sheet as complete valid HTML. No markdown, no code fences.\n\nParameters:\nProgram: ${progLabel}\nPrincipal: $${amount}\nRate: ${rateStr}%\nTerm: ${years} years\nMonthly Debt Service: ${usd2(monthly)}\nStandard SBA Guaranty Fee: ${usd(estFee)}\nFY26 Manufacturer Waiver: ${mfr ? 'APPLIED — Fee reduced to $0' : 'Not applied'}\nCapital Saved: ${usd(feeSavings)}\nOriginating Officer: ${officerEmail || 'Draft'}\nUnderwriting Narrative: ${narrative || 'Standard commercial expansion.'}\n\nDesign: Institutional navy (#0A2540) and white. Tabular number alignment. If waiver applied, include Legislative Advantages section noting September 30 2026 deadline.\nFooter: "Generated via ClearPath SBA | Not a commitment to lend | ${officerEmail || 'Draft'}"`,
-        'Commercial banking document generation. Output complete valid HTML only.',
-        false
+      const dscr = monthly > 0 ? 1.25 : 0; // Default DSCR
+      const data = await fetchAI(
+        `Generate underwriting assessment for SBA loan:\n\nParameters:\nProgram: ${progLabel}\nPrincipal: $${amount}\nRate: ${rateStr}%\nTerm: ${years} years\nMonthly Debt Service: ${usd2(monthly)}\nFY26 Manufacturer Waiver: ${mfr ? 'APPLIED' : 'Not applied'}\n\nReturn JSON: { narrative (2-3 sentence executive summary), covenants_assessment (DSCR minimum recommended), collateral_summary (recommended collateral types) }`,
+        'Commercial banking underwriter. Return valid JSON only.',
+        true
       );
-      html = html.replace(/^```html\s*/i, '').replace(/```\s*$/i, '').trim();
-      setTermSheetHtml(html); setModalOpen(true);
-    } catch (e) { setError(e.message); }
-    finally { setCompiling(false); }
+
+      const origFee = principal * (prog.includes('7a') ? 0.0275 : prog === '504' ? 0.025 : 0.02);
+      const guarantyFee = mfr ? 0 : (prog.includes('7a') ? principal * 0.008 : principal * 0.006);
+      const totalFees = origFee + guarantyFee;
+
+      const termSheetData = {
+        parties: {
+          borrower: '[Borrower Name]',
+          lender: 'ClearPath SBA',
+          officer: officerEmail ? officerEmail.split('@')[0] : 'Loan Officer'
+        },
+        facility: {
+          amount: principal,
+          program: progLabel,
+          index: 'Prime',
+          margin: (parseFloat(rateStr) - 8.5).toFixed(2),
+          annual_rate: rateStr,
+          term: parseInt(years),
+          payments: n
+        },
+        debt_service: {
+          monthly: monthly,
+          annual: monthly * 12,
+          dscr: parseFloat(data.covenants_assessment?.match(/\d\.\d{2}/)?.[0]) || 1.25
+        },
+        equity: {
+          required_pct: 10,
+          required_amount: principal * 0.1
+        },
+        collateral: (data.collateral_summary || 'Commercial real estate').split(',').map(s => s.trim()),
+        covenants: {
+          dscr_min: parseFloat(data.covenants_assessment?.match(/\d\.\d{2}/)?.[0]) || 1.25,
+          current_ratio_min: 1.2,
+          debt_ratio_max: 2.0,
+          testing_frequency: 'Annual'
+        },
+        fees: {
+          origination_pct: prog.includes('7a') ? 2.75 : prog === '504' ? 2.5 : 2.0,
+          origination: origFee,
+          guaranty_pct: mfr ? 0 : (prog.includes('7a') ? 0.8 : 0.6),
+          guaranty: guarantyFee,
+          waiver_applicable: mfr,
+          waiver_savings: mfr ? guarantyFee : 0,
+          total_fees: totalFees
+        },
+        narrative: data.narrative || 'Structurally sound commercial expansion opportunity with strong market fundamentals.',
+        effective_date: new Date().toLocaleDateString(),
+        maturity_date: new Date(new Date().setFullYear(new Date().getFullYear() + parseInt(years))).toLocaleDateString()
+      };
+
+      setTermSheetData(termSheetData);
+      setGenerateStatus('success');
+      setModalOpen(true);
+    } catch (e) {
+      setError(e.message);
+      setGenerateStatus('error');
+    }
+    finally { setGenerating(false); }
   };
 
   const scheduleRows = useMemo(() => {
@@ -484,12 +563,35 @@ function AmortizationTerminal({ nav }) {
     return rows;
   }, [principal, mr, monthly, n]);
 
+  const chartData = useMemo(() => {
+    const data = [];
+    let bal = principal;
+    let cumPrincipal = 0;
+    let cumInterest = 0;
+    const step = Math.max(1, Math.floor(n / 120)); // Max 120 data points
+    for (let i = 1; i <= n; i += step) {
+      for (let j = i; j <= Math.min(i + step - 1, n); j++) {
+        const int = bal * mr, pri = monthly - int;
+        cumPrincipal += pri;
+        cumInterest += int;
+        bal = Math.max(0, bal - pri);
+      }
+      data.push({
+        month: i,
+        principal: Math.round(cumPrincipal),
+        interest: Math.round(cumInterest),
+        balance: Math.round(bal)
+      });
+    }
+    return data;
+  }, [principal, mr, monthly, n]);
+
   const selectedProg = PROGRAMS.find(p => p.id === prog);
 
   return (
     <>
-      {modalOpen && termSheetHtml && (
-        <TermSheetModal html={termSheetHtml} onClose={() => setModalOpen(false)} />
+      {modalOpen && termSheetData && (
+        <TermSheetModal data={termSheetData} onClose={() => setModalOpen(false)} />
       )}
 
       <div className="space-y-4">
@@ -519,29 +621,18 @@ function AmortizationTerminal({ nav }) {
           {/* ── LEFT COLUMN: Inputs ── */}
           <div className="lg:col-span-5 space-y-3">
 
-            {/* NLP Extraction */}
-            <div className={T.card + ' p-4'}>
-              <h2 className="text-xs font-bold text-slate-900 uppercase tracking-wide mb-3 flex items-center gap-2">
-                <FileText className="w-3.5 h-3.5 text-slate-600" />
-                Natural Language Parameter Extraction
-              </h2>
-              <label className={T.label} htmlFor="nlp-input">Client Correspondence / Deal Notes</label>
-              <textarea
-                id="nlp-input"
-                value={notes}
-                onChange={e => setNotes(e.target.value)}
-                placeholder="Paste unstructured client notes. The system will extract loan parameters."
-                className={T.input + ' h-24 resize-none'}
-              />
-              <button
-                onClick={handleExtract}
-                disabled={parsing || !notes.trim()}
-                className={T.btnSecondary + ' w-full justify-center mt-3'}
-              >
-                {parsing && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
-                {parsing ? 'Extracting…' : 'Extract Parameters'}
-              </button>
-            </div>
+            {/* Generative Features Panel */}
+            <GenerativeFeatures
+              onExtract={handleExtract}
+              onGenerate={handleCompile}
+              extracting={extracting}
+              generating={generating}
+              extractNotes={extractNotes}
+              onNotesChange={setExtractNotes}
+              extractStatus={extractStatus}
+              generateStatus={generateStatus}
+              canGenerate={!!amount && !!years && !!rateStr}
+            />
 
             {/* Loan Parameters */}
             <div className={T.card + ' p-4'}>
@@ -633,22 +724,10 @@ function AmortizationTerminal({ nav }) {
               </div>
             </div>
 
-            {/* Term Sheet Compilation */}
+            {/* Officer Details (for term sheet) */}
             <div className={T.card + ' p-4'}>
-              <h2 className="text-xs font-bold text-slate-900 uppercase tracking-wide mb-4">
-                Term Sheet Compilation
-              </h2>
+              <h2 className="text-xs font-bold text-slate-900 uppercase tracking-wide mb-4">Officer Details</h2>
               <div className="space-y-3">
-                <div>
-                  <label className={T.label} htmlFor="narrative">Underwriting Narrative</label>
-                  <textarea
-                    id="narrative"
-                    value={narrative}
-                    onChange={e => setNarrative(e.target.value)}
-                    placeholder="Strategic underwriting context for the executive summary."
-                    className={T.input + ' h-20 resize-none'}
-                  />
-                </div>
                 <div>
                   <label className={T.label} htmlFor="officer-email">Originating Officer Email</label>
                   <input
@@ -660,14 +739,6 @@ function AmortizationTerminal({ nav }) {
                     className={T.input}
                   />
                 </div>
-                <button
-                  onClick={handleCompile}
-                  disabled={compiling}
-                  className={T.btnPrimary + ' w-full justify-center'}
-                >
-                  {compiling ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileText className="w-4 h-4" />}
-                  {compiling ? 'Compiling Document…' : 'Compile Term Sheet'}
-                </button>
               </div>
             </div>
 
@@ -686,7 +757,11 @@ function AmortizationTerminal({ nav }) {
                 </div>
                 <div>
                   <p className={T.kpiLabel}>Total Interest</p>
-                  <p className={T.kpiValue}>{usd(totalInterest)}</p>
+                  <p className={T.kpiValue + ' text-3xl'}>{usd(totalInterest)}</p>
+                </div>
+                <div>
+                  <p className={T.kpiLabel}>Annual Rate</p>
+                  <p className={T.kpiValue + ' text-2xl'}>{rateStr}%</p>
                 </div>
                 <div>
                   <p className={T.kpiLabel}>Guaranty Fee</p>
@@ -695,12 +770,6 @@ function AmortizationTerminal({ nav }) {
                     {mfr && <span className="ml-2 text-[10px] font-bold text-green-300 uppercase tracking-wide">Waived</span>}
                   </p>
                   {mfr && <p className="text-[10px] tabular-nums text-slate-400 line-through">{usd(estFee)}</p>}
-                </div>
-                <div>
-                  <p className={T.kpiLabel}>Capital Saved</p>
-                  <p className={`${T.kpiValue} ${feeSavings > 0 ? 'text-green-300' : 'text-slate-400'}`}>
-                    {usd(feeSavings)}
-                  </p>
                 </div>
               </div>
 
@@ -722,6 +791,44 @@ function AmortizationTerminal({ nav }) {
                   {mfr && (
                     <span className="text-green-300 font-bold uppercase tracking-wide">FY26 Waiver Active</span>
                   )}
+                </div>
+              </div>
+            </div>
+
+            {/* Amortization Charts */}
+            <div className="border border-slate-300 overflow-hidden bg-white">
+              <div className="bg-slate-50 border-b border-slate-300 px-4 py-2.5">
+                <span className="text-xs font-bold text-slate-900 uppercase tracking-wide">Amortization Visualization</span>
+              </div>
+              <div className="p-4 space-y-6">
+                {/* Principal vs Interest */}
+                <div>
+                  <h3 className="text-sm font-semibold text-slate-900 mb-3">Cumulative Principal vs Interest</h3>
+                  <ResponsiveContainer width="100%" height={250}>
+                    <AreaChart data={chartData}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                      <XAxis dataKey="month" label={{ value: 'Month', position: 'insideBottomRight', offset: -8 }} />
+                      <YAxis label={{ value: 'Amount ($)', angle: -90, position: 'insideLeft' }} />
+                      <Tooltip formatter={(v) => `$${v.toLocaleString()}`} />
+                      <Legend />
+                      <Area type="monotone" dataKey="principal" stackId="1" stroke="#1B3A6B" fill="#3B82F6" name="Principal Paid" />
+                      <Area type="monotone" dataKey="interest" stackId="1" stroke="#64748B" fill="#CBD5E1" name="Interest Paid" />
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </div>
+
+                {/* Balance Remaining */}
+                <div>
+                  <h3 className="text-sm font-semibold text-slate-900 mb-3">Remaining Balance</h3>
+                  <ResponsiveContainer width="100%" height={200}>
+                    <LineChart data={chartData}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                      <XAxis dataKey="month" label={{ value: 'Month', position: 'insideBottomRight', offset: -8 }} />
+                      <YAxis label={{ value: 'Balance ($)', angle: -90, position: 'insideLeft' }} />
+                      <Tooltip formatter={(v) => `$${v.toLocaleString()}`} />
+                      <Line type="monotone" dataKey="balance" stroke="#1B3A6B" strokeWidth={2} dot={false} name="Outstanding Balance" />
+                    </LineChart>
+                  </ResponsiveContainer>
                 </div>
               </div>
             </div>
