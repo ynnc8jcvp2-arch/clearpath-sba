@@ -9,10 +9,12 @@ import {
   ChevronRight, ArrowRight
 } from 'lucide-react';
 import { LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
-import TermSheetTemplate from './components/TermSheetTemplate';
-import GenerativeFeatures from './components/GenerativeFeatures';
-import PremiumForm from './components/PremiumForm';
-import { exportTermSheetPDF, exportTermSheetHTML, printTermSheet } from './utils/pdfExport';
+
+// TODO: UI/UX enhancements (planned for Phase 2)
+// import TermSheetTemplate from './components/TermSheetTemplate';
+// import GenerativeFeatures from './components/GenerativeFeatures';
+// import PremiumForm from './components/PremiumForm';
+// import { exportTermSheetPDF, exportTermSheetHTML, printTermSheet } from './utils/pdfExport';
 
 // ── AI via Vercel serverless — Claude claude-sonnet-4-6 ──
 async function fetchAI(prompt, systemInstruction = '', jsonMode = false) {
@@ -58,15 +60,18 @@ const T = {
 // ── Term Sheet Preview Modal ──
 function TermSheetModal({ data, onClose }) {
   const handlePrintTermSheet = () => {
-    printTermSheet('termsheet-content');
+    // TODO: Implement print functionality (Phase 2)
+    window.print();
   };
 
   const handleExportPDF = () => {
-    exportTermSheetPDF('termsheet-content', 'ClearPath_TermSheet.pdf');
+    // TODO: Implement PDF export (Phase 2)
+    alert('PDF export coming in Phase 2');
   };
 
   const handleExportHTML = () => {
-    exportTermSheetHTML('termsheet-content', 'ClearPath_TermSheet.html');
+    // TODO: Implement HTML export (Phase 2)
+    alert('HTML export coming in Phase 2');
   };
 
   return (
@@ -92,8 +97,12 @@ function TermSheetModal({ data, onClose }) {
         </div>
       </div>
       <div className="flex-1 w-full bg-white overflow-y-auto">
-        <div className="max-w-8.5in mx-auto">
-          <TermSheetTemplate data={data} />
+        <div className="max-w-8.5in mx-auto p-8">
+          {/* TODO: Render TermSheetTemplate (Phase 2 - Premium Form Redesign) */}
+          <div className="bg-slate-50 p-8 rounded border border-slate-200">
+            <h3 className="text-lg font-semibold text-slate-900 mb-4">Term Sheet Preview</h3>
+            <p className="text-slate-600">Professional term sheet template coming in Phase 2 redesign.</p>
+          </div>
         </div>
       </div>
     </div>
@@ -620,18 +629,18 @@ function AmortizationTerminal({ nav }) {
           {/* ── LEFT COLUMN: Inputs ── */}
           <div className="lg:col-span-5 space-y-3">
 
-            {/* Generative Features Panel */}
-            <GenerativeFeatures
-              onExtract={handleExtract}
-              onGenerate={handleCompile}
-              extracting={extracting}
-              generating={generating}
-              extractNotes={extractNotes}
-              onNotesChange={setExtractNotes}
-              extractStatus={extractStatus}
-              generateStatus={generateStatus}
-              canGenerate={!!amount && !!years && !!rateStr}
-            />
+            {/* TODO: Generative Features Panel (Phase 2 - API Feature Elevation) */}
+            {/* Placeholder: Extract Parameters and Compile buttons */}
+            <div className="space-y-2">
+              <button onClick={handleExtract} disabled={extracting} className={T.btnPrimary + ' w-full'}>
+                {extracting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Layers className="w-4 h-4" />}
+                {extracting ? 'Extracting...' : 'Extract Parameters'}
+              </button>
+              <button onClick={handleCompile} disabled={generating || !amount} className={T.btnPrimary + ' w-full'}>
+                {generating ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileText className="w-4 h-4" />}
+                {generating ? 'Generating...' : 'Compile Term Sheet'}
+              </button>
+            </div>
 
             {/* Loan Parameters */}
             <div className={T.card + ' p-4'}>

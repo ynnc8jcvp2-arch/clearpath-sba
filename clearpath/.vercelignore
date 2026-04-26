@@ -1,0 +1,24 @@
+# Vercel Deployment Ignore File
+# Files/directories to exclude from deployment
+
+# Environment files (only needed locally)
+.env.local
+.env.*.local
+
+# Development tools
+.vscode/
+.idea/
+.eslintrc*
+.prettierrc*
+
+# OS files
+.DS_Store
+*.swp
+*.swo
+
+# Version control
+.git/
+.gitignore
+
+# Documentation (optional, can include if needed)
+# *.md
