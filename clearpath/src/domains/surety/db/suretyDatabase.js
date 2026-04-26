@@ -1,9 +1,9 @@
 /**
- * Surety Database Service
- * Handles persistence of analyses, applications, and documents
+ * Surety Database Service (Enhanced)
+ * Handles persistence of surety applications, analyses, and documents
  *
- * Note: This requires Supabase client initialization
- * Set VITE_SUPABASE_URL and VITE_SUPABASE_KEY in .env
+ * This is the definitive persistence layer for the Surety domain.
+ * Initialize with: initializeSuretyDB(supabaseClient)
  */
 
 let supabase = null;
@@ -13,15 +13,19 @@ let supabase = null;
  */
 export function initializeSuretyDB(supabaseClient) {
   supabase = supabaseClient;
+  console.log('[SuretyDB] Initialized with Supabase client');
 }
 
 /**
- * Store a new surety application with analysis
+ * Create a new surety application with full analysis
+ * @param {Object} applicationData - Application data including analysis results
+ * @returns {Promise<{success: boolean, applicationId: string}>}
  */
 export async function createApplication(applicationData) {
-  if (!supabase) throw new Error('Supabase not initialized');
+  if (!supabase) throw new Error('Surety DB not initialized. Call initializeSuretyDB() first.');
 
   const {
+    userId, // From auth context
     documentId,
     documentName,
     documentType,
@@ -37,20 +41,22 @@ export async function createApplication(applicationData) {
       .from('surety_applications')
       .insert([
         {
+          user_id: userId,
           document_id: documentId,
           applicant_name: applicantName,
           business_type: businessType,
           industry,
-          analysis_type: analysis.metadata?.analysisType || 'full',
-          overall_risk_level: analysis.underwritingSummary?.overallRiskLevel,
-          as_allowed_net_income: analysis.underwritingSummary?.keyMetrics?.asAllowedNetIncome,
-          as_allowed_margin_percent: analysis.underwritingSummary?.keyMetrics?.asAllowedMarginPercent,
-          total_wip: analysis.underwritingSummary?.keyMetrics?.totalWIP,
-          active_contracts: analysis.underwritingSummary?.keyMetrics?.activeContracts,
-          average_gross_margin: analysis.underwritingSummary?.keyMetrics?.averageGrossMargin,
-          total_bond_value: analysis.underwritingSummary?.keyMetrics?.totalBondValue,
-          bonds_at_risk_percent: analysis.underwritingSummary?.keyMetrics?.bondsAtRiskPercent,
+          analysis_type: analysis?.metadata?.analysisType || 'full',
+          overall_risk_level: analysis?.underwritingSummary?.overallRiskLevel || 'pending',
+          as_allowed_net_income: analysis?.underwritingSummary?.keyMetrics?.asAllowedNetIncome,
+          as_allowed_margin_percent: analysis?.underwritingSummary?.keyMetrics?.asAllowedMarginPercent,
+          total_wip: analysis?.underwritingSummary?.keyMetrics?.totalWIP,
+          active_contracts: analysis?.underwritingSummary?.keyMetrics?.activeContracts,
+          average_gross_margin: analysis?.underwritingSummary?.keyMetrics?.averageGrossMargin,
+          total_bond_value: analysis?.underwritingSummary?.keyMetrics?.totalBondValue,
+          bonds_at_risk_percent: analysis?.underwritingSummary?.keyMetrics?.bondsAtRiskPercent,
           analysis_result: analysis,
+          status: 'new',
         },
       ])
       .select();
@@ -60,20 +66,22 @@ export async function createApplication(applicationData) {
     const applicationId = appData[0].id;
 
     // Insert analysis details
-    const { error: analysisError } = await supabase
-      .from('surety_analyses')
-      .insert([
-        {
-          application_id: applicationId,
-          spreading_analysis: analysis.spreadingAnalysis,
-          wip_analysis: analysis.wipAnalysis,
-          underwriting_summary: analysis.underwritingSummary,
-          normalized_data: analysis.parsed?.normalized,
-          raw_data: analysis.parsed?.raw,
-        },
-      ]);
+    if (analysis) {
+      const { error: analysisError } = await supabase
+        .from('surety_analyses')
+        .insert([
+          {
+            application_id: applicationId,
+            spreading_analysis: analysis.spreadingAnalysis,
+            wip_analysis: analysis.wipAnalysis,
+            underwriting_summary: analysis.underwritingSummary,
+            normalized_data: analysis.parsed?.normalized,
+            raw_data: analysis.parsed?.raw,
+          },
+        ]);
 
-    if (analysisError) throw analysisError;
+      if (analysisError) console.warn('Analysis insert warning:', analysisError);
+    }
 
     // Insert document metadata
     if (documentName) {
@@ -85,64 +93,64 @@ export async function createApplication(applicationData) {
             document_name: documentName,
             document_type: documentType,
             extracted_at: new Date().toISOString(),
-            extraction_confidence: analysis.metadata?.parseQuality?.confidence || 0.75,
+            extraction_confidence: analysis?.metadata?.parseQuality?.confidence || 0.75,
           },
         ]);
 
       if (docError) console.warn('Document insert warning:', docError);
     }
 
-    // Insert risk factors
-    if (analysis.underwritingSummary?.warnings?.length > 0) {
-      const analysisId = (
-        await supabase
-          .from('surety_analyses')
-          .select('id')
-          .eq('application_id', applicationId)
-          .single()
-      ).data.id;
+    // Insert risk factors if present
+    if (analysis?.underwritingSummary?.warnings?.length > 0) {
+      const { data: analysisData } = await supabase
+        .from('surety_analyses')
+        .select('id')
+        .eq('application_id', applicationId)
+        .single();
 
-      const riskFactors = analysis.underwritingSummary.warnings.map((warning) => ({
-        application_id: applicationId,
-        analysis_id: analysisId,
-        source: warning.source,
-        code: warning.code,
-        severity: warning.severity,
-        message: warning.message,
-        affected_contracts: warning.contractIds,
-      }));
+      if (analysisData) {
+        const riskFactors = analysis.underwritingSummary.warnings.map((warning) => ({
+          application_id: applicationId,
+          analysis_id: analysisData.id,
+          source: warning.source || 'analysis',
+          code: warning.code || 'RISK_001',
+          severity: warning.severity || 'medium',
+          message: warning.message,
+          affected_contracts: warning.contractIds || [],
+        }));
 
-      const { error: riskError } = await supabase
-        .from('surety_risk_factors')
-        .insert(riskFactors);
+        const { error: riskError } = await supabase
+          .from('surety_risk_factors')
+          .insert(riskFactors);
 
-      if (riskError) console.warn('Risk factors insert warning:', riskError);
+        if (riskError) console.warn('Risk factors insert warning:', riskError);
+      }
     }
 
-    // Insert recommendations
-    if (analysis.underwritingSummary?.recommendations?.length > 0) {
-      const analysisId = (
-        await supabase
-          .from('surety_analyses')
-          .select('id')
-          .eq('application_id', applicationId)
-          .single()
-      ).data.id;
+    // Insert recommendations if present
+    if (analysis?.underwritingSummary?.recommendations?.length > 0) {
+      const { data: analysisData } = await supabase
+        .from('surety_analyses')
+        .select('id')
+        .eq('application_id', applicationId)
+        .single();
 
-      const recommendations = analysis.underwritingSummary.recommendations.map(
-        (rec, index) => ({
-          application_id: applicationId,
-          analysis_id: analysisId,
-          priority: index,
-          recommendation: rec,
-        })
-      );
+      if (analysisData) {
+        const recommendations = analysis.underwritingSummary.recommendations.map(
+          (rec, index) => ({
+            application_id: applicationId,
+            analysis_id: analysisData.id,
+            priority: index,
+            recommendation: rec,
+          })
+        );
 
-      const { error: recError } = await supabase
-        .from('surety_recommendations')
-        .insert(recommendations);
+        const { error: recError } = await supabase
+          .from('surety_recommendations')
+          .insert(recommendations);
 
-      if (recError) console.warn('Recommendations insert warning:', recError);
+        if (recError) console.warn('Recommendations insert warning:', recError);
+      }
     }
 
     return {
@@ -150,7 +158,7 @@ export async function createApplication(applicationData) {
       applicationId,
     };
   } catch (error) {
-    console.error('Failed to create application:', error);
+    console.error('Failed to create surety application:', error);
     throw error;
   }
 }
@@ -159,7 +167,7 @@ export async function createApplication(applicationData) {
  * Retrieve an application with all related data
  */
 export async function getApplication(applicationId) {
-  if (!supabase) throw new Error('Supabase not initialized');
+  if (!supabase) throw new Error('Surety DB not initialized');
 
   try {
     const { data: app, error: appError } = await supabase
@@ -195,7 +203,7 @@ export async function getApplication(applicationId) {
       .from('surety_recommendations')
       .select('*')
       .eq('application_id', applicationId)
-      .order('priority', { ascending: false });
+      .order('priority', { ascending: true });
 
     return {
       application: app,
@@ -211,10 +219,10 @@ export async function getApplication(applicationId) {
 }
 
 /**
- * List all applications with filters
+ * List all applications with optional filters
  */
 export async function listApplications(filters = {}) {
-  if (!supabase) throw new Error('Supabase not initialized');
+  if (!supabase) throw new Error('Surety DB not initialized');
 
   try {
     let query = supabase.from('surety_applications').select('*');
@@ -244,7 +252,7 @@ export async function listApplications(filters = {}) {
  * Update application status
  */
 export async function updateApplicationStatus(applicationId, status, notes = null) {
-  if (!supabase) throw new Error('Supabase not initialized');
+  if (!supabase) throw new Error('Surety DB not initialized');
 
   try {
     const { data, error } = await supabase
@@ -270,7 +278,7 @@ export async function updateApplicationStatus(applicationId, status, notes = nul
  * Mark risk factor as reviewed/resolved
  */
 export async function resolveRiskFactor(riskFactorId, reviewedBy, reviewNotes = null) {
-  if (!supabase) throw new Error('Supabase not initialized');
+  if (!supabase) throw new Error('Surety DB not initialized');
 
   try {
     const { data, error } = await supabase
@@ -297,7 +305,7 @@ export async function resolveRiskFactor(riskFactorId, reviewedBy, reviewNotes = 
  * Complete a recommendation
  */
 export async function completeRecommendation(recommendationId, completedBy) {
-  if (!supabase) throw new Error('Supabase not initialized');
+  if (!supabase) throw new Error('Surety DB not initialized');
 
   try {
     const { data, error } = await supabase
@@ -322,7 +330,7 @@ export async function completeRecommendation(recommendationId, completedBy) {
  * Get analytics summary
  */
 export async function getAnalyticsSummary(dateRange = null) {
-  if (!supabase) throw new Error('Supabase not initialized');
+  if (!supabase) throw new Error('Surety DB not initialized');
 
   try {
     let query = supabase
@@ -348,12 +356,14 @@ export async function getAnalyticsSummary(dateRange = null) {
         high: data.filter((d) => d.overall_risk_level === 'high').length,
         moderate: data.filter((d) => d.overall_risk_level === 'moderate').length,
         low: data.filter((d) => d.overall_risk_level === 'low').length,
+        pending: data.filter((d) => d.overall_risk_level === 'pending').length,
       },
       byStatus: {
         new: data.filter((d) => d.status === 'new').length,
         in_review: data.filter((d) => d.status === 'in_review').length,
         approved: data.filter((d) => d.status === 'approved').length,
         rejected: data.filter((d) => d.status === 'rejected').length,
+        archived: data.filter((d) => d.status === 'archived').length,
       },
     };
 
@@ -363,3 +373,17 @@ export async function getAnalyticsSummary(dateRange = null) {
     throw error;
   }
 }
+
+/**
+ * Export all database functions
+ */
+export default {
+  initializeSuretyDB,
+  createApplication,
+  getApplication,
+  listApplications,
+  updateApplicationStatus,
+  resolveRiskFactor,
+  completeRecommendation,
+  getAnalyticsSummary,
+};

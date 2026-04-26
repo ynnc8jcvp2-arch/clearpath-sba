@@ -5,7 +5,11 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "node tests/runAllTests.js",
+    "test:calculator": "node tests/loanCalculator.test.js",
+    "test:termsheet": "node tests/termSheetGenerator.test.js",
+    "test:database": "node tests/database.test.js"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.36.3",
