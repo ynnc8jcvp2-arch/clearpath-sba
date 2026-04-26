@@ -95,28 +95,28 @@ function TermSheetModal({ data, onClose }) {
           <button
             onClick={handlePrintTermSheet}
             className={T.btnSecondary + ' text-xs px-3 py-1.5'}
-            title="Print term sheet"
+            aria-label="Print term sheet"
           >
             <Printer className="w-3.5 h-3.5" /> Print
           </button>
           <button
             onClick={handleExportPDF}
             className={T.btnPrimary + ' text-xs px-3 py-1.5'}
-            title="Download as PDF"
+            aria-label="Download as PDF"
           >
             <Download className="w-3.5 h-3.5" /> PDF
           </button>
           <button
             onClick={handleExportHTML}
             className={T.btnSecondary + ' text-xs px-3 py-1.5'}
-            title="Download as HTML for editing"
+            aria-label="Download as HTML for editing"
           >
             <Download className="w-3.5 h-3.5" /> HTML
           </button>
           <button
             onClick={onClose}
             className="ml-2 text-slate-300 hover:text-white transition-colors duration-150 cursor-pointer"
-            title="Close modal"
+            aria-label="Close term sheet"
           >
             <X className="w-5 h-5" />
           </button>
@@ -186,8 +186,9 @@ export default function App() {
           <button
             onClick={() => nav('home')}
             className="flex items-center gap-2.5 shrink-0 cursor-pointer"
+            aria-label="ClearPath SBA — Home"
           >
-            <div className="w-6 h-6 bg-white flex items-center justify-center">
+            <div className="w-6 h-6 bg-white flex items-center justify-center" aria-hidden="true">
               <Landmark className="w-3.5 h-3.5 text-[#0A2540]" />
             </div>
             <span className="font-serif text-sm font-bold text-white">ClearPath SBA</span>
@@ -205,6 +206,8 @@ export default function App() {
           <button
             onClick={() => setMobileOpen(!mobileOpen)}
             className="lg:hidden text-slate-300 hover:text-white transition-colors duration-150 cursor-pointer p-1"
+            aria-label={mobileOpen ? 'Close navigation menu' : 'Open navigation menu'}
+            aria-expanded={mobileOpen}
           >
             {mobileOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </button>
@@ -824,11 +827,11 @@ function AmortizationTerminal({ nav }) {
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <button onClick={copyAll} className={T.btnSecondary + ' text-xs py-1.5 px-3'}>
+                  <button onClick={copyAll} className={T.btnSecondary + ' text-xs py-1.5 px-3'} aria-label="Copy amortization data to clipboard">
                     {copied === 'all' ? <Check className="w-3.5 h-3.5 text-[#1B3A6B]" /> : <Copy className="w-3.5 h-3.5" />}
                     {copied === 'all' ? 'Copied' : 'Copy Data'}
                   </button>
-                  <button onClick={exportCSV} className={T.btnSecondary + ' text-xs py-1.5 px-3'}>
+                  <button onClick={exportCSV} className={T.btnSecondary + ' text-xs py-1.5 px-3'} aria-label="Export amortization schedule as CSV">
                     <Download className="w-3.5 h-3.5" /> Export CSV
                   </button>
                 </div>
@@ -982,7 +985,7 @@ function EligibilityScreener({ nav }) {
             </div>
           )}
 
-          <button onClick={reset} className={T.btnSecondary}>New Inquiry</button>
+          <button onClick={reset} className={T.btnSecondary} aria-label="Start new eligibility inquiry">New Inquiry</button>
         </div>
 
       </div>
@@ -1151,6 +1154,7 @@ function DocumentChecklist() {
                   <button
                     onClick={e => { e.stopPropagation(); explain(item); }}
                     className="opacity-0 group-hover:opacity-100 transition-opacity duration-150 text-[10px] font-bold text-slate-700 uppercase tracking-wide bg-white border border-slate-300 hover:border-slate-500 px-2.5 py-1.5 flex items-center gap-1.5 cursor-pointer rounded-sm shrink-0"
+                    aria-label={`Define: ${item}`}
                   >
                     <MessageSquare className="w-3 h-3" /> Define
                   </button>

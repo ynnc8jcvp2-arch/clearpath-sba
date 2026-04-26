@@ -43,7 +43,7 @@ export function PremiumForm({
       )}
 
       {/* Form Container */}
-      <div className="border border-slate-300 overflow-hidden bg-white shadow-sm">
+      <div className="border border-slate-300 overflow-hidden bg-white shadow-sm" role="form" aria-label={title}>
         {/* Header */}
         <div className="bg-slate-50 border-b border-slate-300 px-6 py-4">
           <h2 className="font-serif text-lg font-bold text-slate-900 mb-1">
