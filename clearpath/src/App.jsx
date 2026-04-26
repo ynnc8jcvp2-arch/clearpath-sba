@@ -10,11 +10,13 @@ import {
 } from 'lucide-react';
 import { LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 
-// TODO: UI/UX enhancements (planned for Phase 2)
-// import TermSheetTemplate from './components/TermSheetTemplate';
+// ── Phase 1: Professional Term Sheet Redesign ──
+import TermSheetTemplate from './components/TermSheetTemplate';
+import { exportTermSheetPDF, exportTermSheetHTML, printTermSheet } from './utils/pdfExport';
+
+// TODO: Phase 2 enhancements (planned for later)
 // import GenerativeFeatures from './components/GenerativeFeatures';
 // import PremiumForm from './components/PremiumForm';
-// import { exportTermSheetPDF, exportTermSheetHTML, printTermSheet } from './utils/pdfExport';
 
 // ── AI via Vercel serverless — Claude claude-sonnet-4-6 ──
 async function fetchAI(prompt, systemInstruction = '', jsonMode = false) {
@@ -60,49 +62,64 @@ const T = {
 // ── Term Sheet Preview Modal ──
 function TermSheetModal({ data, onClose }) {
   const handlePrintTermSheet = () => {
-    // TODO: Implement print functionality (Phase 2)
-    window.print();
+    const element = document.getElementById('term-sheet-printable');
+    if (element) {
+      printTermSheet(element);
+    }
   };
 
   const handleExportPDF = () => {
-    // TODO: Implement PDF export (Phase 2)
-    alert('PDF export coming in Phase 2');
+    const element = document.getElementById('term-sheet-printable');
+    if (element) {
+      exportTermSheetPDF(element, 'clearpath-term-sheet.pdf');
+    }
   };
 
   const handleExportHTML = () => {
-    // TODO: Implement HTML export (Phase 2)
-    alert('HTML export coming in Phase 2');
+    const element = document.getElementById('term-sheet-printable');
+    if (element) {
+      exportTermSheetHTML(element, 'clearpath-term-sheet.html');
+    }
   };
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col bg-black/80 overflow-y-auto">
       <div className="bg-[#0A2540] border-b border-[#1B3A6B] sticky top-0 px-4 py-3 flex items-center justify-between shrink-0">
-        <span className="text-white text-xs font-bold uppercase tracking-wide">Term Sheet Preview</span>
+        <span className="text-white text-xs font-bold uppercase tracking-wide">Professional Term Sheet</span>
         <div className="flex items-center gap-2">
           <button
             onClick={handlePrintTermSheet}
             className={T.btnSecondary + ' text-xs px-3 py-1.5'}
+            title="Print term sheet"
           >
             <Printer className="w-3.5 h-3.5" /> Print
           </button>
-          <button onClick={handleExportPDF} className={T.btnPrimary + ' text-xs px-3 py-1.5'}>
+          <button
+            onClick={handleExportPDF}
+            className={T.btnPrimary + ' text-xs px-3 py-1.5'}
+            title="Download as PDF"
+          >
             <Download className="w-3.5 h-3.5" /> PDF
           </button>
-          <button onClick={handleExportHTML} className={T.btnSecondary + ' text-xs px-3 py-1.5'}>
+          <button
+            onClick={handleExportHTML}
+            className={T.btnSecondary + ' text-xs px-3 py-1.5'}
+            title="Download as HTML for editing"
+          >
             <Download className="w-3.5 h-3.5" /> HTML
           </button>
-          <button onClick={onClose} className="ml-2 text-slate-300 hover:text-white transition-colors duration-150 cursor-pointer">
+          <button
+            onClick={onClose}
+            className="ml-2 text-slate-300 hover:text-white transition-colors duration-150 cursor-pointer"
+            title="Close modal"
+          >
             <X className="w-5 h-5" />
           </button>
         </div>
       </div>
       <div className="flex-1 w-full bg-white overflow-y-auto">
         <div className="max-w-8.5in mx-auto p-8">
-          {/* TODO: Render TermSheetTemplate (Phase 2 - Premium Form Redesign) */}
-          <div className="bg-slate-50 p-8 rounded border border-slate-200">
-            <h3 className="text-lg font-semibold text-slate-900 mb-4">Term Sheet Preview</h3>
-            <p className="text-slate-600">Professional term sheet template coming in Phase 2 redesign.</p>
-          </div>
+          {data && <TermSheetTemplate data={data} />}
         </div>
       </div>
     </div>
