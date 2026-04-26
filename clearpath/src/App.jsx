@@ -17,8 +17,11 @@ import { exportTermSheetPDF, exportTermSheetHTML, printTermSheet } from './utils
 // ── Phase 2: API Feature Elevation ──
 import GenerativeFeatures from './components/GenerativeFeatures';
 
-// TODO: Phase 3+ enhancements (planned for later)
-// import PremiumForm from './components/PremiumForm';
+// ── Phase 3: Amortization Enhancements ──
+import { PrincipalInterestChart, RemainingBalanceChart } from './components/AmortizationCharts';
+
+// ── Phase 4: Premium Forms ──
+import PremiumForm, { PremiumRadioOption, PremiumCheckboxOption, PremiumInput, PremiumSelect } from './components/PremiumForm';
 
 // ── AI via Vercel serverless — Claude claude-sonnet-4-6 ──
 async function fetchAI(prompt, systemInstruction = '', jsonMode = false) {
@@ -582,38 +585,22 @@ function AmortizationTerminal({ nav }) {
     finally { setGenerating(false); }
   };
 
-  const scheduleRows = useMemo(() => {
+  // Full amortization schedule for charting and display
+  const fullScheduleData = useMemo(() => {
     const rows = [];
     let bal = principal;
-    for (let i = 1; i <= Math.min(n, 12); i++) {
-      const int = bal * mr, pri = monthly - int; bal = Math.max(0, bal - pri);
+    for (let i = 1; i <= n; i++) {
+      const int = bal * mr, pri = monthly - int;
+      bal = Math.max(0, bal - pri);
       rows.push({ m: i, pay: monthly, pri, int, bal });
     }
     return rows;
   }, [principal, mr, monthly, n]);
 
-  const chartData = useMemo(() => {
-    const data = [];
-    let bal = principal;
-    let cumPrincipal = 0;
-    let cumInterest = 0;
-    const step = Math.max(1, Math.floor(n / 120)); // Max 120 data points
-    for (let i = 1; i <= n; i += step) {
-      for (let j = i; j <= Math.min(i + step - 1, n); j++) {
-        const int = bal * mr, pri = monthly - int;
-        cumPrincipal += pri;
-        cumInterest += int;
-        bal = Math.max(0, bal - pri);
-      }
-      data.push({
-        month: i,
-        principal: Math.round(cumPrincipal),
-        interest: Math.round(cumInterest),
-        balance: Math.round(bal)
-      });
-    }
-    return data;
-  }, [principal, mr, monthly, n]);
+  // First 12 months for table display
+  const scheduleRows = useMemo(() => {
+    return fullScheduleData.slice(0, 12);
+  }, [fullScheduleData]);
 
   const selectedProg = PROGRAMS.find(p => p.id === prog);
 
@@ -822,43 +809,9 @@ function AmortizationTerminal({ nav }) {
               </div>
             </div>
 
-            {/* Amortization Charts */}
-            <div className="border border-slate-300 overflow-hidden bg-white">
-              <div className="bg-slate-50 border-b border-slate-300 px-4 py-2.5">
-                <span className="text-xs font-bold text-slate-900 uppercase tracking-wide">Amortization Visualization</span>
-              </div>
-              <div className="p-4 space-y-6">
-                {/* Principal vs Interest */}
-                <div>
-                  <h3 className="text-sm font-semibold text-slate-900 mb-3">Cumulative Principal vs Interest</h3>
-                  <ResponsiveContainer width="100%" height={250}>
-                    <AreaChart data={chartData}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                      <XAxis dataKey="month" label={{ value: 'Month', position: 'insideBottomRight', offset: -8 }} />
-                      <YAxis label={{ value: 'Amount ($)', angle: -90, position: 'insideLeft' }} />
-                      <Tooltip formatter={(v) => `$${v.toLocaleString()}`} />
-                      <Legend />
-                      <Area type="monotone" dataKey="principal" stackId="1" stroke="#1B3A6B" fill="#3B82F6" name="Principal Paid" />
-                      <Area type="monotone" dataKey="interest" stackId="1" stroke="#64748B" fill="#CBD5E1" name="Interest Paid" />
-                    </AreaChart>
-                  </ResponsiveContainer>
-                </div>
-
-                {/* Balance Remaining */}
-                <div>
-                  <h3 className="text-sm font-semibold text-slate-900 mb-3">Remaining Balance</h3>
-                  <ResponsiveContainer width="100%" height={200}>
-                    <LineChart data={chartData}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                      <XAxis dataKey="month" label={{ value: 'Month', position: 'insideBottomRight', offset: -8 }} />
-                      <YAxis label={{ value: 'Balance ($)', angle: -90, position: 'insideLeft' }} />
-                      <Tooltip formatter={(v) => `$${v.toLocaleString()}`} />
-                      <Line type="monotone" dataKey="balance" stroke="#1B3A6B" strokeWidth={2} dot={false} name="Outstanding Balance" />
-                    </LineChart>
-                  </ResponsiveContainer>
-                </div>
-              </div>
-            </div>
+            {/* Amortization Charts (Phase 3) */}
+            <PrincipalInterestChart scheduleData={fullScheduleData} />
+            <RemainingBalanceChart scheduleData={fullScheduleData} />
 
             {/* Amortization Schedule */}
             <div className="border border-slate-300 overflow-hidden bg-white">
@@ -1037,81 +990,38 @@ function EligibilityScreener({ nav }) {
   }
 
   return (
-    <div className="max-w-2xl mx-auto space-y-4">
-      {/* Step indicator */}
-      <div>
-        <div className="flex items-center justify-between text-[10px] font-semibold text-slate-600 uppercase tracking-wide mb-2">
-          <span>Eligibility Screener — SBA SOP 50 10 7</span>
-          <span className="tabular-nums">Step {current + 1} / {SCREENER_QUESTIONS.length}</span>
-        </div>
-        {/* Segmented step bar */}
-        <div className="flex gap-px">
-          {SCREENER_QUESTIONS.map((_, i) => (
-            <div
-              key={i}
-              className={`h-1 flex-1 transition-colors duration-150 ${i <= current ? 'bg-[#1B3A6B]' : 'bg-slate-300'}`}
-            />
-          ))}
-        </div>
+    <PremiumForm
+      title={`${q.q}`}
+      subtitle={q.hint || 'Select the option that best describes your situation.'}
+      currentStep={current + 1}
+      totalSteps={SCREENER_QUESTIONS.length}
+      onBack={() => {
+        if (current > 0) {
+          setCurrent(c => c - 1);
+          setSelected(answers[SCREENER_QUESTIONS[current - 1].id] || '');
+        }
+      }}
+      onNext={advance}
+      backDisabled={current === 0}
+      nextDisabled={!selected}
+      isLastStep={current + 1 === SCREENER_QUESTIONS.length}
+      nextLabel={current + 1 === SCREENER_QUESTIONS.length ? 'Submit for Analysis' : 'Continue'}
+    >
+      {/* Options */}
+      <div className="space-y-3">
+        {q.options.map((opt) => (
+          <PremiumRadioOption
+            key={opt.value}
+            value={opt.value}
+            selected={selected === opt.value}
+            label={opt.label}
+            description={null}
+            flag={opt.flag || 'none'}
+            onChange={setSelected}
+          />
+        ))}
       </div>
-
-      <div className="border border-slate-300 overflow-hidden bg-white">
-        {/* Question header */}
-        <div className="bg-slate-50 border-b border-slate-300 px-5 py-4">
-          <h2 className="font-serif text-base font-bold text-slate-900">{q.q}</h2>
-          {q.hint && (
-            <div className="flex items-start gap-2 mt-3 bg-white border border-slate-300 p-3">
-              <Info className="w-3.5 h-3.5 text-slate-500 shrink-0 mt-0.5" />
-              <p className="text-xs text-slate-700 leading-relaxed">{q.hint}</p>
-            </div>
-          )}
-        </div>
-
-        {/* Options */}
-        <div className="divide-y divide-slate-200">
-          {q.options.map((opt) => (
-            <button
-              key={opt.value}
-              onClick={() => setSelected(opt.value)}
-              className={`w-full text-left px-5 py-3.5 flex items-center gap-3 text-sm transition-colors duration-150 cursor-pointer
-                ${selected === opt.value
-                  ? 'bg-[#0A2540] text-white'
-                  : 'bg-white text-slate-800 hover:bg-slate-50'
-                }`}
-            >
-              <div className={`w-3.5 h-3.5 border-2 shrink-0 flex items-center justify-center
-                ${selected === opt.value ? 'border-white' : 'border-slate-400'}`}
-              >
-                {selected === opt.value && <div className="w-1.5 h-1.5 bg-white" />}
-              </div>
-              <span className="font-medium">{opt.label}</span>
-              {opt.flag === 'red'    && <span className="ml-auto text-[10px] font-bold uppercase tracking-wide text-red-700 bg-red-50 border border-red-300 px-1.5 py-0.5">Disqualifying</span>}
-              {opt.flag === 'yellow' && <span className="ml-auto text-[10px] font-bold uppercase tracking-wide text-amber-800 bg-amber-50 border border-amber-300 px-1.5 py-0.5">Conditional</span>}
-            </button>
-          ))}
-        </div>
-
-        {/* Navigation */}
-        <div className="bg-slate-50 border-t border-slate-300 px-5 py-3 flex items-center justify-between">
-          <button
-            onClick={() => { if (current > 0) { setCurrent(c => c - 1); setSelected(answers[SCREENER_QUESTIONS[current - 1].id] || ''); } }}
-            disabled={current === 0}
-            className={T.btnGhost + ' disabled:opacity-0'}
-          >
-            Previous
-          </button>
-          <button
-            onClick={advance}
-            disabled={!selected}
-            className={T.btnPrimary}
-          >
-            {current + 1 === SCREENER_QUESTIONS.length ? 'Submit for Analysis' : 'Continue'}
-            <ArrowRight className="w-3.5 h-3.5" />
-          </button>
-        </div>
-      </div>
-
-    </div>
+    </PremiumForm>
   );
 }
 
@@ -1168,35 +1078,33 @@ function DocumentChecklist() {
       </div>
 
       <div className={T.card + ' p-4'}>
-        <div className="grid sm:grid-cols-2 gap-4">
-          <div>
-            <label className={T.label} htmlFor="loan-type">Transaction Classification</label>
-            <select
-              id="loan-type"
-              value={loanType}
-              onChange={e => { setLoanType(e.target.value); setExplaining(null); setChecked(new Set()); }}
-              className={T.input}
-            >
-              <option value="">Select transaction type…</option>
-              <option value="working_capital">Working Capital / Equipment Acquisition</option>
-              <option value="real_estate">Commercial Real Estate</option>
-              <option value="acquisition">Business Acquisition</option>
-            </select>
-          </div>
-          <div>
-            <label className={T.label} htmlFor="entity-type">Borrowing Entity Structure</label>
-            <select
-              id="entity-type"
-              value={entity}
-              onChange={e => { setEntity(e.target.value); setExplaining(null); setChecked(new Set()); }}
-              className={T.input}
-            >
-              <option value="">Select entity type…</option>
-              <option value="LLC">Limited Liability Company (LLC)</option>
-              <option value="Corp">S-Corporation / C-Corporation</option>
-              <option value="SoleProp">Sole Proprietorship</option>
-            </select>
-          </div>
+        <div className="grid sm:grid-cols-2 gap-6">
+          <PremiumSelect
+            id="loan-type"
+            label="Transaction Classification"
+            value={loanType}
+            onChange={e => { setLoanType(e.target.value); setExplaining(null); setChecked(new Set()); }}
+            options={[
+              { value: '', label: 'Select transaction type…' },
+              { value: 'working_capital', label: 'Working Capital / Equipment Acquisition' },
+              { value: 'real_estate', label: 'Commercial Real Estate' },
+              { value: 'acquisition', label: 'Business Acquisition' },
+            ]}
+            required
+          />
+          <PremiumSelect
+            id="entity-type"
+            label="Borrowing Entity Structure"
+            value={entity}
+            onChange={e => { setEntity(e.target.value); setExplaining(null); setChecked(new Set()); }}
+            options={[
+              { value: '', label: 'Select entity type…' },
+              { value: 'LLC', label: 'Limited Liability Company (LLC)' },
+              { value: 'Corp', label: 'S-Corporation / C-Corporation' },
+              { value: 'SoleProp', label: 'Sole Proprietorship' },
+            ]}
+            required
+          />
         </div>
       </div>
 
@@ -1230,11 +1138,11 @@ function DocumentChecklist() {
               <div key={item}>
                 <div
                   onClick={() => toggle(item)}
-                  className="px-4 py-3 flex items-center justify-between hover:bg-slate-50 transition-colors duration-150 cursor-pointer group"
+                  className="px-4 py-4 flex items-center justify-between hover:bg-slate-50 transition-colors duration-150 cursor-pointer group"
                 >
                   <div className="flex items-center gap-3">
-                    <div className={`w-4 h-4 border-2 flex items-center justify-center shrink-0 transition-colors duration-150 ${checked.has(item) ? 'bg-[#1B3A6B] border-[#1B3A6B]' : 'bg-white border-slate-400 group-hover:border-slate-600'}`}>
-                      {checked.has(item) && <Check className="w-2.5 h-2.5 text-white" />}
+                    <div className={`w-5 h-5 border-2 flex items-center justify-center shrink-0 rounded-sm transition-colors duration-150 ${checked.has(item) ? 'bg-[#1B3A6B] border-[#1B3A6B]' : 'bg-white border-slate-400 group-hover:border-slate-600'}`}>
+                      {checked.has(item) && <Check className="w-3 h-3 text-white" />}
                     </div>
                     <span className={`text-sm font-medium transition-colors duration-150 ${checked.has(item) ? 'text-slate-400 line-through' : 'text-slate-800'}`}>
                       {item}
@@ -1242,7 +1150,7 @@ function DocumentChecklist() {
                   </div>
                   <button
                     onClick={e => { e.stopPropagation(); explain(item); }}
-                    className="opacity-0 group-hover:opacity-100 transition-opacity duration-150 text-[10px] font-bold text-slate-700 uppercase tracking-wide bg-white border border-slate-300 hover:border-slate-500 px-2.5 py-1 flex items-center gap-1.5 cursor-pointer"
+                    className="opacity-0 group-hover:opacity-100 transition-opacity duration-150 text-[10px] font-bold text-slate-700 uppercase tracking-wide bg-white border border-slate-300 hover:border-slate-500 px-2.5 py-1.5 flex items-center gap-1.5 cursor-pointer rounded-sm shrink-0"
                   >
                     <MessageSquare className="w-3 h-3" /> Define
                   </button>
