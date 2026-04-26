@@ -2,7 +2,7 @@
 // Commercial surety bond risk analysis and document processing
 // Part of the modular monolith: shared document parser with SBA domain
 
-import { Upload, FileText, TrendingUp, AlertCircle, CheckCircle, Zap } from 'lucide-react';
+import { Upload, FileText, TrendingUp, AlertCircle, CheckCircle, Zap, Loader2 } from 'lucide-react';
 import { useState } from 'react';
 
 export function SuretyDashboard({ onUploadDocument, onNavigate }) {
@@ -106,8 +106,8 @@ export function SuretyDashboard({ onUploadDocument, onNavigate }) {
                     : 'bg-blue-50 text-blue-800 border-blue-200'
                 }`}
               >
-                {uploadStatus === 'success' && '✓ Document received and queued for analysis'}
-                {uploadStatus === 'error' && '✗ Upload failed. Please retry.'}
+                {uploadStatus === 'success' && 'Document received and queued for analysis'}
+                {uploadStatus === 'error' && 'Upload failed. Please try again.'}
                 {uploadStatus === 'uploading' && 'Uploading and parsing...'}
                 {uploadStatus === 'ready' && `${selectedFile?.name} — ready to upload`}
               </div>
@@ -125,7 +125,7 @@ export function SuretyDashboard({ onUploadDocument, onNavigate }) {
             >
               {uploadStatus === 'uploading' ? (
                 <>
-                  <span className="animate-spin">◐</span> Analyzing...
+                  <Loader2 className="w-4 h-4 animate-spin" /> Analyzing...
                 </>
               ) : (
                 <>

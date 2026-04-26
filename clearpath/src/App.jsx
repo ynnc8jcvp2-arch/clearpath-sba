@@ -362,18 +362,18 @@ function Overview({ nav }) {
           Comprehensive commercial surety bond underwriting tools including work-in-progress analysis, financial spreading, and contractor risk assessment. Built on the same document parsing engine as the SBA module.
         </p>
         <div className="grid sm:grid-cols-2 lg:grid-cols-2 gap-px bg-slate-300 border border-slate-300 overflow-hidden">
-          <div className="bg-gradient-to-br from-[#1B3A6B] to-[#0A2540] p-4 flex flex-col gap-3 text-white">
+          <div className="bg-white p-4 flex flex-col gap-3">
             <div className="flex items-start justify-between">
-              <span className="text-[10px] font-bold text-slate-300 uppercase tracking-wide tabular-nums">SURETY</span>
-              <Briefcase className="w-4 h-4 text-blue-300" />
+              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wide tabular-nums">SURETY</span>
+              <Briefcase className="w-4 h-4 text-slate-500" />
             </div>
             <div>
-              <h2 className="font-serif text-sm font-bold text-white mb-1">Bond Underwriting Dashboard</h2>
-              <p className="text-xs text-slate-200 leading-relaxed">Document upload, shared parser integration, and links to analysis tools.</p>
+              <h2 className="font-serif text-sm font-bold text-slate-900 mb-1">Bond Underwriting Dashboard</h2>
+              <p className="text-xs text-slate-600 leading-relaxed">Document upload, shared parser integration, and links to analysis tools.</p>
             </div>
             <button
               onClick={() => nav('surety')}
-              className="bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs px-3 py-1.5 rounded-sm uppercase tracking-wide transition-colors duration-150 flex items-center justify-center gap-2 mt-auto"
+              className={T.btnSecondary + ' w-full justify-center mt-auto text-xs py-1.5'}
             >
               Open Dashboard <ChevronRight className="w-3.5 h-3.5" />
             </button>

@@ -81,8 +81,8 @@ export function GenerativeFeatures({
                   : 'bg-blue-50 text-blue-800 border border-blue-200'
               }`}
             >
-              {extractStatus === 'success' && '✓ Parameters extracted and populated'}
-              {extractStatus === 'error' && '✗ Error extracting parameters'}
+              {extractStatus === 'success' && 'Parameters extracted and populated'}
+              {extractStatus === 'error' && 'Error extracting parameters. Please try again.'}
               {extractStatus === 'loading' && 'Extracting parameters...'}
             </div>
           )}
@@ -114,12 +114,12 @@ export function GenerativeFeatures({
             <p className="text-sm text-slate-700">
               <span className="font-semibold">Prerequisites:</span>
             </p>
-            <ul className="text-sm text-slate-600 mt-2 space-y-1 ml-4">
-              <li className={extractComplete ? '✓ Loan parameters complete' : '○ Loan parameters pending'}>
-                Loan parameters complete
+            <ul className="text-sm text-slate-600 mt-2 space-y-1 ml-4 list-disc">
+              <li className={extractComplete ? 'text-green-700' : 'text-slate-600'}>
+                Loan parameters: {extractComplete ? 'Complete' : 'Pending'}
               </li>
-              <li className={loanComplete ? '✓ Loan details entered' : '○ Loan details pending'}>
-                Loan details entered
+              <li className={loanComplete ? 'text-green-700' : 'text-slate-600'}>
+                Loan details: {loanComplete ? 'Complete' : 'Pending'}
               </li>
             </ul>
           </div>
@@ -157,8 +157,8 @@ export function GenerativeFeatures({
                   : 'bg-blue-50 text-blue-800 border border-blue-200'
               }`}
             >
-              {compileStatus === 'success' && '✓ Term sheet generated & ready for download'}
-              {compileStatus === 'error' && '✗ Error generating term sheet'}
+              {compileStatus === 'success' && 'Term sheet generated & ready for download'}
+              {compileStatus === 'error' && 'Error generating term sheet. Please try again.'}
               {compileStatus === 'loading' && 'Generating term sheet...'}
             </div>
           )}
