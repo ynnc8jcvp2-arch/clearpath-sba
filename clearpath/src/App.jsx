@@ -55,14 +55,6 @@ const T = {
   td:          'py-2.5 px-4 text-sm tabular-nums text-slate-800',
 };
 
-// ── Ad placeholder ──
-const Ad = ({ h = 'h-[88px]', label = 'Advertisement' }) => (
-  <div className={`${h} w-full bg-slate-100 border border-slate-300 flex items-center justify-center relative`}>
-    <span className="absolute top-2 left-3 text-[9px] font-bold text-slate-500 uppercase tracking-wide">Sponsored</span>
-    <span className="text-xs text-slate-500 font-medium">{label}</span>
-  </div>
-);
-
 // ── Term Sheet Preview Modal ──
 function TermSheetModal({ data, onClose }) {
   const handlePrintTermSheet = () => {
@@ -208,7 +200,6 @@ export default function App() {
       {/* ── Footer ── */}
       <footer className="bg-white border-t border-slate-300 mt-8">
         <div className="max-w-7xl mx-auto px-4 py-6">
-          <Ad h="h-[88px]" label="Footer Leaderboard (728×90)" />
           <div className="mt-6 pt-5 border-t border-slate-200">
             <p className="text-[10px] font-bold text-slate-600 uppercase tracking-wide mb-2">
               Legal Disclaimer &amp; Terms of Use
@@ -276,8 +267,6 @@ function Overview({ nav }) {
 
   return (
     <div className="space-y-5">
-
-      <Ad label="Leaderboard (728×90)" />
 
       {/* FY26 Regulatory Alert */}
       <div className="bg-white border border-amber-400 border-l-4 border-l-amber-600 px-5 py-3 flex flex-col sm:flex-row sm:items-center gap-3 justify-between">
@@ -353,7 +342,6 @@ function Overview({ nav }) {
               </tbody>
             </table>
           </div>
-          <Ad h="h-[90px]" label="In-Article (728×90)" />
         </section>
 
         {/* Authorized User Classifications */}
@@ -372,7 +360,6 @@ function Overview({ nav }) {
               </div>
             ))}
           </div>
-          <Ad h="h-[250px]" label="Sidebar (300×250)" />
         </section>
       </div>
     </div>
@@ -482,12 +469,14 @@ function AmortizationTerminal({ nav }) {
   };
 
   const handleCompile = async () => {
+    console.log('handleCompile called', { prog, amount, years, rateStr });
     setGenerating(true);
     setError(null);
     setGenerateStatus(null);
     try {
       const progLabel = PROGRAMS.find(p => p.id === prog)?.label;
       const dscr = monthly > 0 ? 1.25 : 0; // Default DSCR
+      console.log('About to call fetchAI with:', { progLabel });
       const data = await fetchAI(
         `Generate underwriting assessment for SBA loan:\n\nParameters:\nProgram: ${progLabel}\nPrincipal: $${amount}\nRate: ${rateStr}%\nTerm: ${years} years\nMonthly Debt Service: ${usd2(monthly)}\nFY26 Manufacturer Waiver: ${mfr ? 'APPLIED' : 'Not applied'}\n\nReturn JSON: { narrative (2-3 sentence executive summary), covenants_assessment (DSCR minimum recommended), collateral_summary (recommended collateral types) }`,
         'Commercial banking underwriter. Return valid JSON only.',
@@ -516,15 +505,23 @@ function AmortizationTerminal({ nav }) {
         debt_service: {
           monthly: monthly,
           annual: monthly * 12,
-          dscr: parseFloat(data.covenants_assessment?.match(/\d\.\d{2}/)?.[0]) || 1.25
+          dscr: typeof data.covenants_assessment === 'number' ? data.covenants_assessment : parseFloat(String(data.covenants_assessment || '1.25').match(/\d+\.?\d*/)?.[0] || '1.25')
         },
         equity: {
           required_pct: 10,
           required_amount: principal * 0.1
         },
-        collateral: (data.collateral_summary || 'Commercial real estate').split(',').map(s => s.trim()),
+        collateral: (() => {
+          let summary = data.collateral_summary || 'Commercial real estate';
+          if (typeof summary === 'object') {
+            summary = 'Commercial real estate'; // Default if API returns object
+          } else {
+            summary = String(summary);
+          }
+          return summary.split(',').map(s => s.trim()).filter(s => s && s !== '[object Object]');
+        })(),
         covenants: {
-          dscr_min: parseFloat(data.covenants_assessment?.match(/\d\.\d{2}/)?.[0]) || 1.25,
+          dscr_min: typeof data.covenants_assessment === 'number' ? data.covenants_assessment : parseFloat(String(data.covenants_assessment || '1.25').match(/\d+\.?\d*/)?.[0] || '1.25'),
           current_ratio_min: 1.2,
           debt_ratio_max: 2.0,
           testing_frequency: 'Annual'
@@ -543,10 +540,14 @@ function AmortizationTerminal({ nav }) {
         maturity_date: new Date(new Date().setFullYear(new Date().getFullYear() + parseInt(years))).toLocaleDateString()
       };
 
+      console.log('Setting term sheet data and opening modal', { termSheetData });
       setTermSheetData(termSheetData);
       setGenerateStatus('success');
+      console.log('About to call setModalOpen(true)');
       setModalOpen(true);
+      console.log('setModalOpen called');
     } catch (e) {
+      console.error('Error in handleCompile:', e);
       setError(e.message);
       setGenerateStatus('error');
     }
@@ -595,8 +596,6 @@ function AmortizationTerminal({ nav }) {
       )}
 
       <div className="space-y-4">
-        <Ad label="Top Banner (728×90)" />
-
         {/* Page header */}
         <div className="flex items-center justify-between border-b border-slate-300 pb-3">
           <div>
@@ -742,7 +741,6 @@ function AmortizationTerminal({ nav }) {
               </div>
             </div>
 
-            <Ad h="h-[250px]" label="Sidebar (300×250)" />
           </div>
 
           {/* ── RIGHT COLUMN: Output ── */}
@@ -903,11 +901,8 @@ function AmortizationTerminal({ nav }) {
               </div>
 
               <div className="border-t border-slate-200 p-4">
-                <Ad h="h-[88px]" label="Post-Table Placement (728×90)" />
               </div>
             </div>
-
-            <Ad h="h-[88px]" label="Bottom Banner" />
           </div>
         </div>
       </div>
@@ -959,8 +954,6 @@ function EligibilityScreener({ nav }) {
 
     return (
       <div className="max-w-2xl mx-auto space-y-4">
-        <Ad label="Top Placement" />
-
         <div className={`bg-white border border-slate-300 border-l-4 ${borderCls} p-6`}>
           <div className={`inline-block text-xs font-bold uppercase tracking-wide px-2 py-1 mb-4 ${bgCls} ${textCls} border ${result === 'approved' ? 'border-green-300' : result === 'conditional' ? 'border-amber-300' : 'border-red-300'}`}>
             {cfg.label}
@@ -1010,15 +1003,12 @@ function EligibilityScreener({ nav }) {
           <button onClick={reset} className={T.btnSecondary}>New Inquiry</button>
         </div>
 
-        <Ad label="Bottom Placement" />
       </div>
     );
   }
 
   return (
     <div className="max-w-2xl mx-auto space-y-4">
-      <Ad label="Top Placement" />
-
       {/* Step indicator */}
       <div>
         <div className="flex items-center justify-between text-[10px] font-semibold text-slate-600 uppercase tracking-wide mb-2">
@@ -1092,7 +1082,6 @@ function EligibilityScreener({ nav }) {
         </div>
       </div>
 
-      <Ad label="Bottom Placement" />
     </div>
   );
 }
@@ -1142,8 +1131,6 @@ function DocumentChecklist() {
 
   return (
     <div className="max-w-4xl mx-auto space-y-4">
-      <Ad label="Top Placement (728×90)" />
-
       <div className="flex items-center justify-between border-b border-slate-300 pb-3">
         <div>
           <h1 className={`${T.sectionHead} text-xl`}>Compliance Document Checklist</h1>
@@ -1254,7 +1241,6 @@ function DocumentChecklist() {
         </div>
       )}
 
-      <Ad label="Bottom Placement (728×90)" />
     </div>
   );
 }
@@ -1278,8 +1264,6 @@ function ProgramComparison() {
 
   return (
     <div className="space-y-4">
-      <Ad label="Top Placement (728×90)" />
-
       <div className="flex items-center justify-between border-b border-slate-300 pb-3">
         <div>
           <h1 className={`${T.sectionHead} text-xl`}>SBA Program Comparison Matrix</h1>
@@ -1315,8 +1299,6 @@ function ProgramComparison() {
       </div>
 
       <div className="grid md:grid-cols-2 gap-4">
-        <Ad h="h-64" label="Bottom Left (300×250)" />
-        <Ad h="h-64" label="Bottom Right (300×250)" />
       </div>
     </div>
   );

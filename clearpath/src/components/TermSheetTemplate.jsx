@@ -192,7 +192,7 @@ export default function TermSheetTemplate({ data }) {
           <ul style={{ marginLeft: '20px', fontSize: '11pt' }}>
             {collateral.map((item, i) => (
               <li key={i} style={{ marginBottom: '6px' }}>
-                {item}
+                {typeof item === 'object' ? JSON.stringify(item) : String(item).trim()}
               </li>
             ))}
           </ul>
