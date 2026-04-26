@@ -23,6 +23,11 @@ import { PrincipalInterestChart, RemainingBalanceChart } from './components/Amor
 // ── Phase 4: Premium Forms ──
 import PremiumForm, { PremiumRadioOption, PremiumCheckboxOption, PremiumInput, PremiumSelect } from './components/PremiumForm';
 
+// ── Surety Domain (Trisura Commercial Bond Underwriting) ──
+import SuretyDashboard from './components/SuretyDashboard';
+import SpreadingEngine from './components/SpreadingEngine';
+import WIPAnalyzer from './components/WIPAnalyzer';
+
 // ── AI via Vercel serverless — Claude claude-sonnet-4-6 ──
 async function fetchAI(prompt, systemInstruction = '', jsonMode = false) {
   const delays = [1000, 2000, 4000];
@@ -160,6 +165,7 @@ export default function App() {
     { id: 'screener',   label: 'Eligibility Screener'  },
     { id: 'checklist',  label: 'Document Checklist'    },
     { id: 'compare',    label: 'Program Comparison'    },
+    { id: 'surety',     label: 'Surety Underwriting',  type: 'domain' },
   ];
 
   const NavLink = ({ id, label }) => (
@@ -186,14 +192,14 @@ export default function App() {
           <button
             onClick={() => nav('home')}
             className="flex items-center gap-2.5 shrink-0 cursor-pointer"
-            aria-label="ClearPath SBA — Home"
+            aria-label="ClearPath — Home"
           >
             <div className="w-6 h-6 bg-white flex items-center justify-center" aria-hidden="true">
               <Landmark className="w-3.5 h-3.5 text-[#0A2540]" />
             </div>
-            <span className="font-serif text-sm font-bold text-white">ClearPath SBA</span>
+            <span className="font-serif text-sm font-bold text-white">ClearPath</span>
             <span className="hidden sm:block text-slate-400 text-[10px] font-semibold uppercase tracking-wide ml-1 border-l border-[#1B3A6B] pl-2">
-              SBA SOP 50 10 7 · Free Platform
+              SBA · Surety · Free Platform
             </span>
           </button>
 
@@ -227,6 +233,9 @@ export default function App() {
         {page === 'screener'   && <EligibilityScreener nav={nav} />}
         {page === 'checklist'  && <DocumentChecklist />}
         {page === 'compare'    && <ProgramComparison />}
+        {page === 'surety'     && <SuretyDashboard onNavigate={nav} onUploadDocument={() => {}} />}
+        {page === 'spreading'  && <SpreadingEngine onBack={() => nav('surety')} />}
+        {page === 'wip'        && <WIPAnalyzer onBack={() => nav('surety')} />}
       </main>
 
       <SpeedInsights />
@@ -320,7 +329,7 @@ function Overview({ nav }) {
 
       {/* Module Index */}
       <section>
-        <h1 className={`${T.sectionHead} mb-3`}>Platform Modules</h1>
+        <h1 className={`${T.sectionHead} mb-3`}>SBA 7(a) Lending Tools</h1>
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-px bg-slate-300 border border-slate-300 overflow-hidden">
           {MODULES.map((m) => (
             <div key={m.id} className="bg-white p-4 flex flex-col gap-3">
@@ -340,6 +349,51 @@ function Overview({ nav }) {
               </button>
             </div>
           ))}
+        </div>
+      </section>
+
+      {/* Surety Bond Underwriting Domain */}
+      <section>
+        <div className="border-b border-slate-300 pb-3 mb-3 flex items-center justify-between">
+          <h1 className={`${T.sectionHead}`}>Commercial Surety Bond Underwriting</h1>
+          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wide px-2 py-1 bg-slate-100 border border-slate-200 rounded-sm">Beta Module</span>
+        </div>
+        <p className="text-sm text-slate-600 mb-4 leading-relaxed">
+          Comprehensive commercial surety bond underwriting tools including work-in-progress analysis, financial spreading, and contractor risk assessment. Built on the same document parsing engine as the SBA module.
+        </p>
+        <div className="grid sm:grid-cols-2 lg:grid-cols-2 gap-px bg-slate-300 border border-slate-300 overflow-hidden">
+          <div className="bg-gradient-to-br from-[#1B3A6B] to-[#0A2540] p-4 flex flex-col gap-3 text-white">
+            <div className="flex items-start justify-between">
+              <span className="text-[10px] font-bold text-slate-300 uppercase tracking-wide tabular-nums">SURETY</span>
+              <Briefcase className="w-4 h-4 text-blue-300" />
+            </div>
+            <div>
+              <h2 className="font-serif text-sm font-bold text-white mb-1">Bond Underwriting Dashboard</h2>
+              <p className="text-xs text-slate-200 leading-relaxed">Document upload, shared parser integration, and links to analysis tools.</p>
+            </div>
+            <button
+              onClick={() => nav('surety')}
+              className="bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs px-3 py-1.5 rounded-sm uppercase tracking-wide transition-colors duration-150 flex items-center justify-center gap-2 mt-auto"
+            >
+              Open Dashboard <ChevronRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
+          <div className="bg-white p-4 flex flex-col gap-3">
+            <div className="flex items-start justify-between">
+              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wide tabular-nums">ANALYSIS</span>
+              <Calculator className="w-4 h-4 text-slate-500" />
+            </div>
+            <div>
+              <h2 className="font-serif text-sm font-bold text-slate-900 mb-1">As-Allowed Spreading Engine</h2>
+              <p className="text-xs text-slate-600 leading-relaxed">SBA 13(g)(2) financial analysis, EBITDA calculation, and health scoring.</p>
+            </div>
+            <button
+              onClick={() => nav('spreading')}
+              className={T.btnSecondary + ' w-full justify-center mt-auto text-xs py-1.5'}
+            >
+              Open Engine <ChevronRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
         </div>
       </section>
 
