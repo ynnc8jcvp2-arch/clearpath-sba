@@ -44,6 +44,16 @@
 ✅ Dark mode support
 ✅ Professional typography (Merriweather serif, Inter sans-serif)
 
+#### Security & Authentication (Phase 1)
+⏳ **Currently:** Open-access demo (all features visible for presentation)
+✅ **Planned Week 1-2 of Phase 1:** 
+  - Google OAuth + Supabase Auth integration
+  - Role-based access control (Admin/Underwriter/Viewer)
+  - Session management with secure tokens
+  - Complete audit logging of all actions
+  - Support for corporate SSO (your IT team configures)
+  - See SECURITY_ARCHITECTURE_PHASE_1.md for technical details
+
 ### Modular Architecture Proof
 ✅ Dual-domain structure (SBA + Surety) sharing unified core
 ✅ Extensible design for future lending domains
@@ -228,6 +238,7 @@
    - Platform overview
    - Architecture philosophy
    - Why modular matters
+   - **Security note:** "Demo is open-access to show all features. Phase 1 Week 1-2, we'll add Google OAuth and role-based access."
 
 2. **SBA Module Demo** (5 min)
    - Amortization calculator ($500K, 10.5%, 10 years)
