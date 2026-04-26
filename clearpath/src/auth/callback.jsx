@@ -11,18 +11,16 @@
 
 import React, { useEffect } from 'react';
 import { useAuth } from './useAuth';
-import { useNavigate } from 'react-router-dom';
 
 export function OAuthCallback() {
   const { isAuthenticated, loading } = useAuth();
-  const navigate = useNavigate();
 
   useEffect(() => {
     // Once authentication is complete, redirect to home
     if (!loading && isAuthenticated) {
-      navigate('/');
+      window.location.href = '/';
     }
-  }, [isAuthenticated, loading, navigate]);
+  }, [isAuthenticated, loading]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#0a2540] to-[#1b3a6b] flex items-center justify-center">
