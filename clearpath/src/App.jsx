@@ -14,8 +14,10 @@ import { LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
 import TermSheetTemplate from './components/TermSheetTemplate';
 import { exportTermSheetPDF, exportTermSheetHTML, printTermSheet } from './utils/pdfExport';
 
-// TODO: Phase 2 enhancements (planned for later)
-// import GenerativeFeatures from './components/GenerativeFeatures';
+// ── Phase 2: API Feature Elevation ──
+import GenerativeFeatures from './components/GenerativeFeatures';
+
+// TODO: Phase 3+ enhancements (planned for later)
 // import PremiumForm from './components/PremiumForm';
 
 // ── AI via Vercel serverless — Claude claude-sonnet-4-6 ──
@@ -646,18 +648,19 @@ function AmortizationTerminal({ nav }) {
           {/* ── LEFT COLUMN: Inputs ── */}
           <div className="lg:col-span-5 space-y-3">
 
-            {/* TODO: Generative Features Panel (Phase 2 - API Feature Elevation) */}
-            {/* Placeholder: Extract Parameters and Compile buttons */}
-            <div className="space-y-2">
-              <button onClick={handleExtract} disabled={extracting} className={T.btnPrimary + ' w-full'}>
-                {extracting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Layers className="w-4 h-4" />}
-                {extracting ? 'Extracting...' : 'Extract Parameters'}
-              </button>
-              <button onClick={handleCompile} disabled={generating || !amount} className={T.btnPrimary + ' w-full'}>
-                {generating ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileText className="w-4 h-4" />}
-                {generating ? 'Generating...' : 'Compile Term Sheet'}
-              </button>
-            </div>
+            {/* ── Phase 2: Generative Features Panel ── */}
+            <GenerativeFeatures
+              onExtractParameters={handleExtract}
+              onCompileTermSheet={handleCompile}
+              extractLoading={extracting}
+              compileLoading={generating}
+              extractStatus={extractStatus}
+              compileStatus={generateStatus}
+              dealNotes={extractNotes}
+              onDealNotesChange={setExtractNotes}
+              loanComplete={Boolean(amount && principal > 0)}
+              extractComplete={extractStatus === 'success'}
+            />
 
             {/* Loan Parameters */}
             <div className={T.card + ' p-4'}>
