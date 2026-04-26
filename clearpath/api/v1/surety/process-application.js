@@ -10,7 +10,16 @@
  * 5. Generate underwriting summary
  */
 
+import { verifyAndAttachUser } from '../../middleware/auth.js';
+
 export default async function handler(req, res) {
+  // Verify authentication
+  const authError = await verifyAndAttachUser(req);
+  if (authError) {
+    const { statusCode, body } = authError;
+    return res.status(statusCode).json(JSON.parse(body));
+  }
+
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }

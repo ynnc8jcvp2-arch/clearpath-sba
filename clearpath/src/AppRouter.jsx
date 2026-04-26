@@ -2,6 +2,9 @@ import React, { useState, useEffect } from 'react';
 import App from './App';
 import { SuretyApplicationForm } from './domains/surety/components/SuretyApplicationForm';
 import { initializeSuretyDB } from './domains/surety/db/suretyDatabase';
+import { AuthProvider } from './auth/AuthProvider';
+import { ProtectedRoute } from './auth/ProtectedRoute';
+import { OAuthCallback } from './auth/callback';
 import { Menu, X } from 'lucide-react';
 
 /**
@@ -39,6 +42,46 @@ export default function AppRouter() {
     initializeSupabase();
   }, []);
 
+  return (
+    <AuthProvider>
+      <ProtectedRouterContent
+        currentPage={currentPage}
+        setCurrentPage={setCurrentPage}
+        mobileMenuOpen={mobileMenuOpen}
+        setMobileMenuOpen={setMobileMenuOpen}
+        supabaseReady={supabaseReady}
+      />
+    </AuthProvider>
+  );
+}
+
+function ProtectedRouterContent({
+  currentPage,
+  setCurrentPage,
+  mobileMenuOpen,
+  setMobileMenuOpen,
+  supabaseReady,
+}) {
+  return (
+    <ProtectedRoute>
+      <RouterContent
+        currentPage={currentPage}
+        setCurrentPage={setCurrentPage}
+        mobileMenuOpen={mobileMenuOpen}
+        setMobileMenuOpen={setMobileMenuOpen}
+        supabaseReady={supabaseReady}
+      />
+    </ProtectedRoute>
+  );
+}
+
+function RouterContent({
+  currentPage,
+  setCurrentPage,
+  mobileMenuOpen,
+  setMobileMenuOpen,
+  supabaseReady,
+}) {
   return (
     <div className="min-h-screen bg-white">
       {/* Navigation Header */}

@@ -50,6 +50,7 @@ import {
   formatErrorResponse,
   formatSuccessResponse,
 } from '../../middleware/validation.js';
+import { verifyAndAttachUser } from '../../middleware/auth.js';
 
 // Mock AI function - replace with actual Claude API in Phase 1
 async function generateNarrative(borrowerInfo, parsedFinancials) {
@@ -265,6 +266,13 @@ function generateTermSheetHTML(data) {
 }
 
 export default async function handler(req, res) {
+  // Verify authentication
+  const authError = await verifyAndAttachUser(req);
+  if (authError) {
+    const { statusCode, body } = authError;
+    return res.status(statusCode).json(JSON.parse(body));
+  }
+
   // Validate HTTP method
   const methodError = validateHttpMethod(req, ['POST']);
   if (methodError) {

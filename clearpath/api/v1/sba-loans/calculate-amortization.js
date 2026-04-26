@@ -49,6 +49,7 @@ import {
   formatErrorResponse,
   formatSuccessResponse,
 } from '../../middleware/validation.js';
+import { verifyAndAttachUser } from '../../middleware/auth.js';
 
 const SBA_ORIGINATION_FEE_RATE = 0.0075; // 0.75% standard
 const SBA_GUARANTY_FEE_RATE = 0.015; // 1.5% standard
@@ -88,6 +89,13 @@ function generateAmortizationSchedule(principal, monthlyRate, termMonths) {
 }
 
 export default async function handler(req, res) {
+  // Verify authentication
+  const authError = await verifyAndAttachUser(req);
+  if (authError) {
+    const { statusCode, body } = authError;
+    return res.status(statusCode).json(JSON.parse(body));
+  }
+
   // Validate HTTP method
   const methodError = validateHttpMethod(req, ['POST']);
   if (methodError) {
