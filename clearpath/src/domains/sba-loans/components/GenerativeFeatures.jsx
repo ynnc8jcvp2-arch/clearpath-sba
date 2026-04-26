@@ -1,137 +1,175 @@
-import { Zap, FileText, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
+// ── Generative Features Panel ──
+// Prominent feature cards for AI-powered parameter extraction and term sheet generation
+// Elevates the Extract Parameters and Compile Term Sheet functionality with clear status indicators
 
-export default function GenerativeFeatures({
-  onExtract,
-  onGenerate,
-  extracting = false,
-  generating = false,
-  extractNotes = '',
-  onNotesChange,
+import { Zap, FileText, Loader2 } from 'lucide-react';
+
+export function GenerativeFeatures({
+  onExtractParameters,
+  onCompileTermSheet,
+  extractLoading = false,
+  compileLoading = false,
   extractStatus = null,
-  generateStatus = null,
-  canGenerate = false
+  compileStatus = null,
+  dealNotes = '',
+  onDealNotesChange,
+  loanComplete = false,
+  extractComplete = false,
 }) {
   return (
-    <div className="space-y-6 mb-8">
-      {/* GENERATE LOAN PARAMETERS */}
-      <div className="border border-slate-300 rounded-sm overflow-hidden bg-white hover:border-slate-400 transition-colors">
-        {/* Header with accent bar */}
-        <div className="flex gap-0">
-          <div className="w-1 bg-[#1B3A6B]"></div>
-          <div className="flex-1 p-5">
-            {/* Title Section */}
-            <div className="flex items-center gap-3 mb-4">
-              <Zap className="w-5 h-5 text-[#1B3A6B]" />
-              <div>
-                <h3 className="font-serif text-lg font-bold text-slate-900">GENERATE LOAN PARAMETERS</h3>
-                <p className="text-xs text-slate-600 font-medium">AI-powered extraction from deal notes</p>
-              </div>
-            </div>
-
-            {/* Textarea Input */}
-            <textarea
-              value={extractNotes}
-              onChange={(e) => onNotesChange(e.target.value)}
-              placeholder="Paste unstructured client notes. The system will extract loan parameters..."
-              className="w-full bg-slate-50 border border-slate-300 rounded-sm px-4 py-3 text-sm text-slate-900 placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-[#1B3A6B] focus:border-[#1B3A6B] transition-colors resize-none h-32 mb-4"
-              disabled={extracting}
-            />
-
-            {/* Generate Button */}
-            <button
-              onClick={onExtract}
-              disabled={!extractNotes.trim() || extracting}
-              className="w-full bg-[#1B3A6B] hover:bg-[#0A2540] text-white font-semibold text-sm px-6 py-3 rounded-none border border-[#0A2540] transition-colors duration-150 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-            >
-              {extracting ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  Generating Parameters...
-                </>
-              ) : (
-                <>
-                  <Zap className="w-4 h-4" />
-                  GENERATE PARAMETERS
-                </>
-              )}
-            </button>
-
-            {/* Status Indicators */}
-            {extractStatus === 'success' && (
-              <div className="mt-3 flex items-center gap-2 text-green-700 text-sm font-medium">
-                <CheckCircle className="w-4 h-4" />
-                Parameters extracted successfully
-              </div>
-            )}
-            {extractStatus === 'error' && (
-              <div className="mt-3 flex items-center gap-2 text-red-700 text-sm font-medium">
-                <AlertCircle className="w-4 h-4" />
-                Failed to extract parameters. Please try again.
-              </div>
-            )}
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+      {/* ── Feature 1: Extract Parameters ── */}
+      <div className="bg-white border border-slate-200 rounded-lg overflow-hidden shadow-sm">
+        <div className="bg-gradient-to-r from-[#1B3A6B] to-[#0A2540] px-6 py-4 flex items-start gap-4">
+          <div className="flex-shrink-0 pt-1">
+            <Zap className="w-6 h-6 text-yellow-300" />
           </div>
+          <div className="flex-1">
+            <h3 className="text-lg font-bold text-white uppercase tracking-wide">
+              Generate Loan Parameters
+            </h3>
+            <p className="text-sm text-slate-200 mt-1">
+              AI-powered extraction from deal notes
+            </p>
+          </div>
+        </div>
+
+        <div className="p-6 space-y-4">
+          <div>
+            <label className="block text-sm font-semibold text-slate-700 mb-2">
+              Deal Notes & Context
+            </label>
+            <textarea
+              value={dealNotes}
+              onChange={(e) => onDealNotesChange(e.target.value)}
+              disabled={extractLoading}
+              placeholder="Paste client notes, business summary, or deal structure details..."
+              className="w-full h-24 px-3 py-2 border border-slate-300 rounded bg-slate-50 text-sm focus:outline-none focus:ring-2 focus:ring-[#1B3A6B] focus:border-transparent disabled:opacity-50"
+            />
+          </div>
+
+          <button
+            onClick={onExtractParameters}
+            disabled={extractLoading || !dealNotes.trim()}
+            className={`w-full py-3 px-4 rounded font-bold uppercase tracking-wide transition-all duration-200 flex items-center justify-center gap-2 ${
+              extractLoading || !dealNotes.trim()
+                ? 'bg-slate-300 text-slate-600 cursor-not-allowed'
+                : 'bg-[#1B3A6B] text-white hover:bg-[#0A2540] active:scale-95'
+            }`}
+          >
+            {extractLoading ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Generating Parameters...
+              </>
+            ) : (
+              <>
+                <Zap className="w-4 h-4" />
+                Generate Parameters
+              </>
+            )}
+          </button>
+
+          {/* Status Indicator */}
+          {extractStatus && (
+            <div
+              className={`p-3 rounded text-sm font-medium text-center ${
+                extractStatus === 'success'
+                  ? 'bg-green-50 text-green-800 border border-green-200'
+                  : extractStatus === 'error'
+                  ? 'bg-red-50 text-red-800 border border-red-200'
+                  : 'bg-blue-50 text-blue-800 border border-blue-200'
+              }`}
+            >
+              {extractStatus === 'success' && 'Parameters extracted and populated'}
+              {extractStatus === 'error' && 'Error extracting parameters. Please try again.'}
+              {extractStatus === 'loading' && 'Extracting parameters...'}
+            </div>
+          )}
+
+          <p className="text-xs text-slate-500 text-center">
+            AI reads your notes and populates loan parameters automatically
+          </p>
         </div>
       </div>
 
-      {/* CREATE TERM SHEET */}
-      <div className={`border rounded-sm overflow-hidden bg-white transition-colors ${canGenerate ? 'border-slate-300 hover:border-slate-400' : 'border-slate-200 opacity-75'}`}>
-        {/* Header with accent bar */}
-        <div className="flex gap-0">
-          <div className={`w-1 ${canGenerate ? 'bg-[#1B3A6B]' : 'bg-slate-300'}`}></div>
-          <div className="flex-1 p-5">
-            {/* Title Section */}
-            <div className="flex items-center gap-3 mb-4">
-              <FileText className={`w-5 h-5 ${canGenerate ? 'text-[#1B3A6B]' : 'text-slate-400'}`} />
-              <div>
-                <h3 className="font-serif text-lg font-bold text-slate-900">CREATE TERM SHEET</h3>
-                <p className="text-xs text-slate-600 font-medium">AI-generated institutional document</p>
-              </div>
-            </div>
-
-            {/* Precondition Notice */}
-            {!canGenerate && (
-              <div className="bg-slate-50 border border-slate-200 rounded-sm px-4 py-3 mb-4">
-                <p className="text-sm text-slate-700 font-medium">
-                  ℹ️ Complete loan parameters first by generating them above, or fill in all required fields in the loan parameters section.
-                </p>
-              </div>
-            )}
-
-            {/* Generate Button */}
-            <button
-              onClick={onGenerate}
-              disabled={!canGenerate || generating}
-              className="w-full bg-[#1B3A6B] hover:bg-[#0A2540] text-white font-semibold text-sm px-6 py-3 rounded-none border border-[#0A2540] transition-colors duration-150 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-            >
-              {generating ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  Generating Term Sheet...
-                </>
-              ) : (
-                <>
-                  <FileText className="w-4 h-4" />
-                  CREATE TERM SHEET
-                </>
-              )}
-            </button>
-
-            {/* Status Indicators */}
-            {generateStatus === 'success' && (
-              <div className="mt-3 flex items-center gap-2 text-green-700 text-sm font-medium">
-                <CheckCircle className="w-4 h-4" />
-                Term sheet generated successfully
-              </div>
-            )}
-            {generateStatus === 'error' && (
-              <div className="mt-3 flex items-center gap-2 text-red-700 text-sm font-medium">
-                <AlertCircle className="w-4 h-4" />
-                Failed to generate term sheet. Please try again.
-              </div>
-            )}
+      {/* ── Feature 2: Compile Term Sheet ── */}
+      <div className="bg-white border border-slate-200 rounded-lg overflow-hidden shadow-sm">
+        <div className="bg-gradient-to-r from-[#0A2540] to-[#1B3A6B] px-6 py-4 flex items-start gap-4">
+          <div className="flex-shrink-0 pt-1">
+            <FileText className="w-6 h-6 text-blue-300" />
           </div>
+          <div className="flex-1">
+            <h3 className="text-lg font-bold text-white uppercase tracking-wide">
+              Create Term Sheet
+            </h3>
+            <p className="text-sm text-slate-200 mt-1">
+              AI-generated institutional document
+            </p>
+          </div>
+        </div>
+
+        <div className="p-6 space-y-4">
+          <div className="bg-slate-50 p-4 rounded border border-slate-200">
+            <p className="text-sm text-slate-700">
+              <span className="font-semibold">Prerequisites:</span>
+            </p>
+            <ul className="text-sm text-slate-600 mt-2 space-y-1 ml-4 list-disc">
+              <li className={extractComplete ? 'text-green-700' : 'text-slate-600'}>
+                Loan parameters: {extractComplete ? 'Complete' : 'Pending'}
+              </li>
+              <li className={loanComplete ? 'text-green-700' : 'text-slate-600'}>
+                Loan details: {loanComplete ? 'Complete' : 'Pending'}
+              </li>
+            </ul>
+          </div>
+
+          <button
+            onClick={onCompileTermSheet}
+            disabled={compileLoading || !loanComplete}
+            className={`w-full py-3 px-4 rounded font-bold uppercase tracking-wide transition-all duration-200 flex items-center justify-center gap-2 ${
+              compileLoading || !loanComplete
+                ? 'bg-slate-300 text-slate-600 cursor-not-allowed'
+                : 'bg-[#0A2540] text-white hover:bg-[#1B3A6B] active:scale-95'
+            }`}
+          >
+            {compileLoading ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Generating Term Sheet...
+              </>
+            ) : (
+              <>
+                <FileText className="w-4 h-4" />
+                Create Term Sheet
+              </>
+            )}
+          </button>
+
+          {/* Status Indicator */}
+          {compileStatus && (
+            <div
+              className={`p-3 rounded text-sm font-medium text-center ${
+                compileStatus === 'success'
+                  ? 'bg-green-50 text-green-800 border border-green-200'
+                  : compileStatus === 'error'
+                  ? 'bg-red-50 text-red-800 border border-red-200'
+                  : 'bg-blue-50 text-blue-800 border border-blue-200'
+              }`}
+            >
+              {compileStatus === 'success' && 'Term sheet generated & ready for download'}
+              {compileStatus === 'error' && 'Error generating term sheet. Please try again.'}
+              {compileStatus === 'loading' && 'Generating term sheet...'}
+            </div>
+          )}
+
+          <p className="text-xs text-slate-500 text-center">
+            Generates professional term sheet suitable for executive review
+          </p>
         </div>
       </div>
     </div>
   );
 }
+
+export default GenerativeFeatures;

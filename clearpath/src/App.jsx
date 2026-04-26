@@ -10,23 +10,17 @@ import {
 } from 'lucide-react';
 import { LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 
-// ── Phase 1: Professional Term Sheet Redesign ──
-import TermSheetTemplate from './components/TermSheetTemplate';
-import { exportTermSheetPDF, exportTermSheetHTML, printTermSheet } from './utils/pdfExport';
+// ── SBA Loan Domain Components ──
+import TermSheetTemplate from './domains/sba-loans/components/TermSheetTemplate';
+import { exportTermSheetPDF, exportTermSheetHTML, printTermSheet } from './shared/utils/pdfExport';
+import GenerativeFeatures from './domains/sba-loans/components/GenerativeFeatures';
+import { PrincipalInterestChart, RemainingBalanceChart } from './domains/sba-loans/components/AmortizationCharts';
+import PremiumForm, { PremiumRadioOption, PremiumCheckboxOption, PremiumInput, PremiumSelect } from './domains/sba-loans/components/PremiumForm';
 
-// ── Phase 2: API Feature Elevation ──
-import GenerativeFeatures from './components/GenerativeFeatures';
-
-// ── Phase 3: Amortization Enhancements ──
-import { PrincipalInterestChart, RemainingBalanceChart } from './components/AmortizationCharts';
-
-// ── Phase 4: Premium Forms ──
-import PremiumForm, { PremiumRadioOption, PremiumCheckboxOption, PremiumInput, PremiumSelect } from './components/PremiumForm';
-
-// ── Surety Domain (Trisura Commercial Bond Underwriting) ──
-import SuretyDashboard from './components/SuretyDashboard';
-import SpreadingEngine from './components/SpreadingEngine';
-import WIPAnalyzer from './components/WIPAnalyzer';
+// ── Surety Bond Domain Components (Trisura Commercial Bond Underwriting) ──
+import SuretyDashboard from './domains/surety/components/SuretyDashboard';
+import SpreadingEngine from './domains/surety/components/SpreadingEngine';
+import WIPAnalyzer from './domains/surety/components/WIPAnalyzer';
 
 // ── AI via Vercel serverless — Claude claude-sonnet-4-6 ──
 async function fetchAI(prompt, systemInstruction = '', jsonMode = false) {
