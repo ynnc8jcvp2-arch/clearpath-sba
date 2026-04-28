@@ -94,8 +94,32 @@ export function AuthProvider({ children }) {
     };
   }, [supabaseClient]);
 
+  // Verify Turnstile CAPTCHA token with backend
+  const verifyCaptchaToken = useCallback(async (token) => {
+    try {
+      const response = await fetch('/api/auth/verify-captcha', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ token }),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.error || 'CAPTCHA verification failed');
+      }
+
+      return true;
+    } catch (err) {
+      console.error('CAPTCHA verification error:', err);
+      setError(err.message);
+      return false;
+    }
+  }, []);
+
   // Sign in with Google
-  const signInWithGoogle = useCallback(async () => {
+  const signInWithGoogle = useCallback(async (captchaToken) => {
     if (!supabaseClient) {
       setError('Supabase client not initialized');
       return;
@@ -103,6 +127,15 @@ export function AuthProvider({ children }) {
 
     try {
       setError(null);
+
+      // Verify CAPTCHA token first
+      if (captchaToken) {
+        const isCaptchaValid = await verifyCaptchaToken(captchaToken);
+        if (!isCaptchaValid) {
+          return;
+        }
+      }
+
       const { error: signInError } = await supabaseClient.auth.signInWithOAuth({
         provider: 'google',
         options: {
@@ -116,7 +149,7 @@ export function AuthProvider({ children }) {
     } catch (err) {
       setError(err.message);
     }
-  }, [supabaseClient]);
+  }, [supabaseClient, verifyCaptchaToken]);
 
   // Sign out
   const signOut = useCallback(async () => {
