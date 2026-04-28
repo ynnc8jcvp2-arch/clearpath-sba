@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import App from './App';
-import { SuretyApplicationForm } from './domains/surety/components/SuretyApplicationForm';
-import { initializeSuretyDB } from './domains/surety/db/suretyDatabase';
-import { AuthProvider } from './auth/AuthProvider';
-import { ProtectedRoute } from './auth/ProtectedRoute';
 import { OAuthCallback } from './auth/callback';
+import { SuretyApplicationForm } from './domains/surety/components/SuretyApplicationForm';
+import { SuretyCalculatorDemo } from './domains/surety/components/SuretyCalculatorDemo';
+import { initializeSuretyDB } from './domains/surety/db/suretyDatabase';
 import { Menu, X } from 'lucide-react';
 
 /**
@@ -42,36 +41,22 @@ export default function AppRouter() {
     initializeSupabase();
   }, []);
 
-  return (
-    <AuthProvider>
-      <ProtectedRouterContent
-        currentPage={currentPage}
-        setCurrentPage={setCurrentPage}
-        mobileMenuOpen={mobileMenuOpen}
-        setMobileMenuOpen={setMobileMenuOpen}
-        supabaseReady={supabaseReady}
-      />
-    </AuthProvider>
-  );
-}
+  // Handle OAuth callback route
+  useEffect(() => {
+    const path = window.location.pathname;
+    if (path === '/auth/callback') {
+      setCurrentPage('oauth-callback');
+    }
+  }, []);
 
-function ProtectedRouterContent({
-  currentPage,
-  setCurrentPage,
-  mobileMenuOpen,
-  setMobileMenuOpen,
-  supabaseReady,
-}) {
   return (
-    <ProtectedRoute>
-      <RouterContent
-        currentPage={currentPage}
-        setCurrentPage={setCurrentPage}
-        mobileMenuOpen={mobileMenuOpen}
-        setMobileMenuOpen={setMobileMenuOpen}
-        supabaseReady={supabaseReady}
-      />
-    </ProtectedRoute>
+    <RouterContent
+      currentPage={currentPage}
+      setCurrentPage={setCurrentPage}
+      mobileMenuOpen={mobileMenuOpen}
+      setMobileMenuOpen={setMobileMenuOpen}
+      supabaseReady={supabaseReady}
+    />
   );
 }
 
@@ -83,91 +68,13 @@ function RouterContent({
   supabaseReady,
 }) {
   return (
-    <div className="min-h-screen bg-white">
-      {/* Navigation Header */}
-      <nav className="bg-white border-b border-slate-200 sticky top-0 z-40">
-        <div className="max-w-full px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            {/* Logo */}
-            <div className="flex-shrink-0">
-              <a href="#" className="text-xl font-bold text-slate-900">
-                ClearPath
-              </a>
-            </div>
-
-            {/* Desktop Navigation */}
-            <div className="hidden md:flex items-center gap-8">
-              <button
-                onClick={() => setCurrentPage('sba')}
-                className={`py-2 px-4 text-sm font-medium transition-colors ${
-                  currentPage === 'sba'
-                    ? 'text-blue-600 border-b-2 border-blue-600'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                SBA Loan Processing
-              </button>
-              <button
-                onClick={() => setCurrentPage('surety')}
-                className={`py-2 px-4 text-sm font-medium transition-colors ${
-                  currentPage === 'surety'
-                    ? 'text-blue-600 border-b-2 border-blue-600'
-                    : 'text-slate-600 hover:text-slate-900'
-                }`}
-              >
-                Surety Bond Underwriting
-              </button>
-            </div>
-
-            {/* Mobile menu button */}
-            <div className="md:hidden">
-              <button
-                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                className="text-slate-600 hover:text-slate-900"
-              >
-                {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-              </button>
-            </div>
-          </div>
-
-          {/* Mobile Navigation */}
-          {mobileMenuOpen && (
-            <div className="md:hidden pb-4 space-y-2">
-              <button
-                onClick={() => {
-                  setCurrentPage('sba');
-                  setMobileMenuOpen(false);
-                }}
-                className={`block w-full text-left py-2 px-4 text-sm font-medium rounded ${
-                  currentPage === 'sba'
-                    ? 'bg-blue-100 text-blue-900'
-                    : 'text-slate-700 hover:bg-slate-100'
-                }`}
-              >
-                SBA Loan Processing
-              </button>
-              <button
-                onClick={() => {
-                  setCurrentPage('surety');
-                  setMobileMenuOpen(false);
-                }}
-                className={`block w-full text-left py-2 px-4 text-sm font-medium rounded ${
-                  currentPage === 'surety'
-                    ? 'bg-blue-100 text-blue-900'
-                    : 'text-slate-700 hover:bg-slate-100'
-                }`}
-              >
-                Surety Bond Underwriting
-              </button>
-            </div>
-          )}
-        </div>
-      </nav>
-
-      {/* Page Content */}
-      <main>
-        {currentPage === 'sba' && <App />}
+    <div className={currentPage === 'surety-demo' ? 'bg-slate-900' : 'bg-slate-50'}>
+      {/* Page Content - App.jsx includes its own professional header */}
+      <main className={currentPage === 'surety-demo' ? '' : 'min-h-screen'}>
+        {currentPage === 'sba' && <App supabaseReady={supabaseReady} />}
+        {currentPage === 'oauth-callback' && <OAuthCallback />}
         {currentPage === 'surety' && <SuretyApplicationForm />}
+        {currentPage === 'surety-demo' && <SuretyCalculatorDemo />}
       </main>
 
       {/* Footer */}
@@ -197,6 +104,14 @@ function RouterContent({
                     className="hover:text-white transition-colors"
                   >
                     Surety Bond Underwriting
+                  </button>
+                </li>
+                <li>
+                  <button
+                    onClick={() => setCurrentPage('surety-demo')}
+                    className="hover:text-white transition-colors"
+                  >
+                    Surety Calculator Demo
                   </button>
                 </li>
               </ul>

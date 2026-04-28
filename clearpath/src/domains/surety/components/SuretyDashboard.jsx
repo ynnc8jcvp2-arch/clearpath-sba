@@ -165,9 +165,9 @@ export function SuretyDashboard({ onUploadDocument, onNavigate }) {
               </div>
             </div>
             <div className="px-4 py-4 bg-[#0A2540]/50 border-t border-[#1B3A6B] text-xs text-slate-100 space-y-2">
-              <p>✓ SBA 13(g)(2) spreading methodologies</p>
-              <p>✓ Industry-adjusted financial metrics</p>
-              <p>✓ Guarantor capacity analysis</p>
+              <p>SBA 13(g)(2) spreading methodologies</p>
+              <p>Industry-adjusted financial metrics</p>
+              <p>Guarantor capacity analysis</p>
               <button
                 onClick={() => onNavigate('spreading')}
                 className="mt-4 w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-sm uppercase tracking-wide text-xs transition-colors"
@@ -193,9 +193,9 @@ export function SuretyDashboard({ onUploadDocument, onNavigate }) {
               </div>
             </div>
             <div className="px-4 py-4 bg-[#1B3A6B]/50 border-t border-[#0A2540] text-xs text-slate-100 space-y-2">
-              <p>✓ Job-by-job WIP analysis</p>
-              <p>✓ Profitability trending</p>
-              <p>✓ Contingent liability assessment</p>
+              <p>Job-by-job WIP analysis</p>
+              <p>Profitability trending</p>
+              <p>Contingent liability assessment</p>
               <button
                 onClick={() => onNavigate('wip')}
                 className="mt-4 w-full bg-amber-600 hover:bg-amber-700 text-white font-bold py-2 px-4 rounded-sm uppercase tracking-wide text-xs transition-colors"

@@ -6,7 +6,7 @@
  * Complete end-to-end processor for surety bond applications.
  * Orchestrates: document upload → parsing → spreading → WIP analysis → underwriting summary
  *
- * This is the primary endpoint for Trisura commercial surety underwriting.
+ * This is the primary endpoint for commercial surety underwriting.
  *
  * Request body:
  * {

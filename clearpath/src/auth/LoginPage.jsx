@@ -3,25 +3,82 @@
  *
  * Landing page for unauthenticated users.
  * Displays "Sign in with Google" button with company branding.
- * Handles authentication flow entry point.
+ * Handles authentication flow entry point with Cloudflare Turnstile CAPTCHA.
  *
  * Usage:
  * <LoginPage />
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from './useAuth';
 
 export function LoginPage() {
   const { signInWithGoogle, error, loading } = useAuth();
   const [localError, setLocalError] = useState(null);
+  const [captchaToken, setCaptchaToken] = useState(null);
+  const [captchaError, setCaptchaError] = useState(null);
+  const turnstileRef = useRef(null);
+
+  // Initialize Turnstile widget
+  useEffect(() => {
+    const siteKey = import.meta.env.VITE_TURNSTILE_SITE_KEY;
+
+    if (!siteKey) {
+      setCaptchaError('Turnstile configuration missing');
+      return;
+    }
+
+    if (window.turnstile && turnstileRef.current) {
+      try {
+        window.turnstile.render('#turnstile-container', {
+          sitekey: siteKey,
+          theme: 'light',
+          callback: (token) => {
+            setCaptchaToken(token);
+            setCaptchaError(null);
+          },
+          'error-callback': () => {
+            setCaptchaError('CAPTCHA verification failed. Please try again.');
+            setCaptchaToken(null);
+          },
+          'expired-callback': () => {
+            setCaptchaToken(null);
+          },
+        });
+      } catch (err) {
+        setCaptchaError('Failed to load CAPTCHA widget');
+        console.error('Turnstile error:', err);
+      }
+    }
+
+    return () => {
+      if (window.turnstile && turnstileRef.current) {
+        try {
+          window.turnstile.reset();
+        } catch (err) {
+          console.warn('Error resetting Turnstile:', err);
+        }
+      }
+    };
+  }, []);
 
   const handleGoogleSignIn = async () => {
     setLocalError(null);
+
+    if (!captchaToken) {
+      setLocalError('Please complete the CAPTCHA verification');
+      return;
+    }
+
     try {
-      await signInWithGoogle();
+      await signInWithGoogle(captchaToken);
     } catch (err) {
       setLocalError(err.message || 'Failed to sign in with Google');
+      // Reset CAPTCHA on error
+      if (window.turnstile) {
+        window.turnstile.reset();
+        setCaptchaToken(null);
+      }
     }
   };
 
@@ -31,8 +88,7 @@ export function LoginPage() {
         {/* Header */}
         <div className="text-center mb-12">
           <h1 className="text-5xl font-bold text-white mb-2">ClearPath</h1>
-          <p className="text-slate-300 text-lg">Professional Lending Platform</p>
-          <p className="text-slate-400 text-sm mt-2">Powered by Trisura</p>
+          <p className="text-slate-300 text-lg">SBA 7(a) Loan & Surety Bond Underwriting</p>
         </div>
 
         {/* Card */}
@@ -47,13 +103,21 @@ export function LoginPage() {
           </div>
 
           {/* Error Display */}
-          {(error || localError) && (
+          {(error || localError || captchaError) && (
             <div className="bg-red-50 border border-red-200 rounded-md p-3">
               <p className="text-red-700 text-sm font-medium">
-                {error || localError}
+                {error || localError || captchaError}
               </p>
             </div>
           )}
+
+          {/* CAPTCHA Widget */}
+          <div
+            ref={turnstileRef}
+            id="turnstile-container"
+            className="flex justify-center cf-turnstile"
+            data-theme="light"
+          />
 
           {/* Sign In Button */}
           <button
@@ -92,7 +156,7 @@ export function LoginPage() {
         {/* Footer */}
         <div className="mt-8 text-center space-y-2">
           <p className="text-slate-400 text-xs">
-            🔒 Secure login with Google and Supabase
+            Secure login with Google and Supabase
           </p>
           <p className="text-slate-400 text-xs">
             Questions? Contact <a href="mailto:support@clearpath.io" className="text-sky-300 hover:underline">support@clearpath.io</a>

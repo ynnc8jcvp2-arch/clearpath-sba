@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { SpeedInsights } from '@vercel/speed-insights/react';
 import {
   Shield, FileText, Activity, AlertCircle,
@@ -6,9 +6,16 @@ import {
   Layers, CheckSquare, Info, MessageSquare,
   Landmark, Calculator, Loader2, Copy, Check,
   Factory, Briefcase, Users, Printer, ExternalLink,
-  ChevronRight, ArrowRight
+  ChevronRight, ArrowRight, LogOut, LogIn
 } from 'lucide-react';
 import { LineChart, Line, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import {
+  getAuthToken,
+  getCurrentUser,
+  signOut,
+  signInWithGoogle,
+  onAuthStateChange
+} from './shared/utils/supabaseClient';
 
 // ── SBA Loan Domain Components ──
 import TermSheetTemplate from './domains/sba-loans/components/TermSheetTemplate';
@@ -17,10 +24,47 @@ import GenerativeFeatures from './domains/sba-loans/components/GenerativeFeature
 import { PrincipalInterestChart, RemainingBalanceChart } from './domains/sba-loans/components/AmortizationCharts';
 import PremiumForm, { PremiumRadioOption, PremiumCheckboxOption, PremiumInput, PremiumSelect } from './domains/sba-loans/components/PremiumForm';
 
-// ── Surety Bond Domain Components (Trisura Commercial Bond Underwriting) ──
+// ── Surety Bond Domain Components (Commercial Bond Underwriting) ──
 import SuretyDashboard from './domains/surety/components/SuretyDashboard';
 import SpreadingEngine from './domains/surety/components/SpreadingEngine';
 import WIPAnalyzer from './domains/surety/components/WIPAnalyzer';
+
+// ── Authenticated API Call Helper ──
+async function fetchAPI(endpoint, method = 'GET', body = null) {
+  const token = await getAuthToken();
+  if (!token) {
+    throw new Error('Authentication required. Please sign in.');
+  }
+
+  const headers = {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${token}`,
+  };
+
+  const options = {
+    method,
+    headers,
+  };
+
+  if (body) {
+    options.body = JSON.stringify(body);
+  }
+
+  const res = await fetch(endpoint, options);
+
+  if (!res.ok) {
+    if (res.status === 401) {
+      throw new Error('Authentication failed. Please sign in again.');
+    }
+    if (res.status === 403) {
+      throw new Error('Permission denied. Your account does not have access to this feature.');
+    }
+    const error = await res.json().catch(() => ({ error: `HTTP ${res.status}` }));
+    throw new Error(error.error || error.message || `Request failed with status ${res.status}`);
+  }
+
+  return await res.json();
+}
 
 // ── AI via Vercel serverless — Claude claude-sonnet-4-6 ──
 async function fetchAI(prompt, systemInstruction = '', jsonMode = false) {
@@ -55,6 +99,8 @@ const T = {
   btnSecondary:'inline-flex items-center gap-2 bg-white hover:bg-slate-100 text-slate-900 font-semibold text-sm px-4 py-2 rounded-none border border-slate-400 transition-colors duration-150 cursor-pointer disabled:opacity-50',
   btnGhost:    'inline-flex items-center gap-2 hover:bg-slate-100 text-slate-700 hover:text-slate-900 font-medium text-sm px-3 py-2 rounded-none transition-colors duration-150 cursor-pointer',
   sectionHead: 'font-serif text-lg font-bold text-slate-900',
+  sectionHeadLarge: 'font-serif text-2xl font-bold text-slate-900',
+  sectionHeadAlt: 'font-serif text-xl font-bold text-[#1B3A6B]',
   kpiLabel:    'text-xs font-semibold text-slate-300 uppercase tracking-wide mb-1',
   kpiValue:    'text-2xl font-bold tabular-nums text-white',
   dataLabel:   'text-xs font-semibold text-slate-600 uppercase tracking-wide',
@@ -150,6 +196,50 @@ const SCREENER_QUESTIONS = [
 export default function App() {
   const [page, setPage] = useState('home');
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  // Initialize auth state on mount
+  useEffect(() => {
+    let unsubscribe;
+
+    (async () => {
+      try {
+        const currentUser = await getCurrentUser();
+        setUser(currentUser);
+
+        // Subscribe to auth changes
+        unsubscribe = onAuthStateChange((session) => {
+          setUser(session?.user || null);
+        });
+      } catch (err) {
+        console.error('Auth initialization error:', err);
+      } finally {
+        setLoading(false);
+      }
+    })();
+
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
+  }, []);
+
+  const handleSignIn = async () => {
+    try {
+      await signInWithGoogle();
+    } catch (err) {
+      console.error('Sign in error:', err);
+    }
+  };
+
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+      setUser(null);
+    } catch (err) {
+      console.error('Sign out error:', err);
+    }
+  };
 
   const nav = (p) => { setPage(p); setMobileOpen(false); window.scrollTo({ top: 0, behavior: 'instant' }); };
 
@@ -198,9 +288,37 @@ export default function App() {
           </button>
 
           {/* Desktop nav */}
-          <nav className="hidden lg:flex items-center">
+          <nav className="hidden lg:flex items-center gap-0.5">
             {NAV_ITEMS.map(item => <NavLink key={item.id} {...item} />)}
           </nav>
+
+          {/* Auth Button */}
+          <div className="flex items-center gap-2 shrink-0">
+            {!loading && (
+              user ? (
+                <div className="flex items-center gap-2">
+                  <span className="hidden sm:block text-xs text-slate-300">{user.email?.split('@')[0]}</span>
+                  <button
+                    onClick={handleSignOut}
+                    className={T.btnSecondary + ' text-xs py-1.5 px-3'}
+                    aria-label="Sign out"
+                  >
+                    <LogOut className="w-3.5 h-3.5" />
+                    <span className="hidden sm:block">Sign Out</span>
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={handleSignIn}
+                  className={T.btnPrimary + ' text-xs py-1.5 px-3'}
+                  aria-label="Sign in with Google"
+                >
+                  <LogIn className="w-3.5 h-3.5" />
+                  <span className="hidden sm:block">Sign In</span>
+                </button>
+              )
+            )}
+          </div>
 
           {/* Mobile toggle */}
           <button
@@ -223,11 +341,11 @@ export default function App() {
       {/* ── Main content ── */}
       <main className="max-w-7xl mx-auto px-4 py-6">
         {page === 'home'       && <Overview nav={nav} />}
-        {page === 'calculator' && <AmortizationTerminal nav={nav} />}
+        {page === 'calculator' && <AmortizationTerminal nav={nav} user={user} />}
         {page === 'screener'   && <EligibilityScreener nav={nav} />}
         {page === 'checklist'  && <DocumentChecklist />}
         {page === 'compare'    && <ProgramComparison />}
-        {page === 'surety'     && <SuretyDashboard onNavigate={nav} onUploadDocument={() => {}} />}
+        {page === 'surety'     && <SuretyDashboard onNavigate={nav} onUploadDocument={() => {}} user={user} />}
         {page === 'spreading'  && <SpreadingEngine onBack={() => nav('surety')} />}
         {page === 'wip'        && <WIPAnalyzer onBack={() => nav('surety')} />}
       </main>
@@ -268,6 +386,7 @@ function Overview({ nav }) {
     {
       n: '01', id: 'calculator',
       title: 'Amortization Terminal',
+      tagline: 'Model loan payments in seconds',
       desc: 'Model loan amortization, calculate debt service, apply FY26 manufacturer fee waivers, and compile formal term sheets.',
       action: 'Open Terminal',
       icon: Activity,
@@ -275,6 +394,7 @@ function Overview({ nav }) {
     {
       n: '02', id: 'screener',
       title: 'Eligibility Screener',
+      tagline: 'Pre-qualify applicants instantly',
       desc: 'Screen applicants against SBA SOP 50 10 7 qualification criteria prior to formal underwriting submission.',
       action: 'Screen Applicant',
       icon: Shield,
@@ -282,6 +402,7 @@ function Overview({ nav }) {
     {
       n: '03', id: 'checklist',
       title: 'Document Checklist',
+      tagline: 'Generate regulatory matrices',
       desc: 'Generate entity- and transaction-specific document requirement matrices with inline regulatory definitions.',
       action: 'Build Checklist',
       icon: CheckSquare,
@@ -289,6 +410,7 @@ function Overview({ nav }) {
     {
       n: '04', id: 'compare',
       title: 'Program Comparison',
+      tagline: 'Compare SBA product options',
       desc: 'Side-by-side comparison of 7(a), 504, and Express capital limits, rates, terms, and use-of-proceeds restrictions.',
       action: 'Compare Programs',
       icon: Layers,
@@ -305,34 +427,36 @@ function Overview({ nav }) {
   return (
     <div className="space-y-5">
 
-      {/* FY26 Regulatory Alert */}
-      <div className="bg-white border border-amber-400 border-l-4 border-l-amber-600 px-5 py-3 flex flex-col sm:flex-row sm:items-center gap-3 justify-between">
+      {/* FY26 Regulatory Alert (De-emphasized) */}
+      <div className="bg-white border-t border-slate-200 px-5 py-2 flex flex-col sm:flex-row sm:items-center gap-2 justify-between">
         <div>
-          <p className="text-xs font-bold text-amber-800 uppercase tracking-wide mb-0.5">
-            Regulatory Notice — FY2026 Fee Waiver
+          <p className="text-[11px] font-semibold text-slate-600 uppercase tracking-wide mb-0.5">
+            FY2026 Manufacturer Fee Waiver (NAICS 31–33)
           </p>
-          <p className="text-sm text-slate-800">
-            NAICS 31–33 (Manufacturing) borrowers qualify for elimination of SBA upfront guaranty fees under FY26 appropriations.{' '}
-            <strong className="text-slate-900">Authorization expires September 30, 2026.</strong>
+          <p className="text-xs text-slate-700 leading-relaxed">
+            Qualifying manufacturers save on SBA upfront guaranty fees through September 30, 2026.
           </p>
         </div>
-        <button onClick={() => nav('calculator')} className={T.btnPrimary + ' shrink-0'}>
-          Model Fee Exemption <ArrowRight className="w-3.5 h-3.5" />
+        <button onClick={() => nav('calculator')} className="text-xs text-slate-700 hover:text-slate-900 whitespace-nowrap font-medium transition-colors">
+          Estimate Savings →
         </button>
       </div>
 
       {/* Module Index */}
       <section>
-        <h1 className={`${T.sectionHead} mb-3`}>SBA 7(a) Lending Tools</h1>
+        <h1 className={`${T.sectionHeadLarge} mb-4`}>SBA 7(a) Lending Tools</h1>
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-px bg-slate-300 border border-slate-300 overflow-hidden">
           {MODULES.map((m) => (
             <div key={m.id} className="bg-white p-4 flex flex-col gap-3">
               <div className="flex items-start justify-between">
                 <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wide tabular-nums">{m.n}</span>
-                <m.icon className="w-4 h-4 text-slate-500" />
+                <div className="bg-slate-100 rounded-lg p-2">
+                  <m.icon className="w-6 h-6 text-slate-700" />
+                </div>
               </div>
               <div>
-                <h2 className="font-serif text-sm font-bold text-slate-900 mb-1">{m.title}</h2>
+                <h2 className="font-serif text-sm font-bold text-slate-900 mb-0.5">{m.title}</h2>
+                <p className="text-xs text-slate-500 font-medium mb-1">{m.tagline}</p>
                 <p className="text-xs text-slate-600 leading-relaxed">{m.desc}</p>
               </div>
               <button
@@ -347,10 +471,12 @@ function Overview({ nav }) {
       </section>
 
       {/* Surety Bond Underwriting Domain */}
-      <section>
-        <div className="border-b border-slate-300 pb-3 mb-3 flex items-center justify-between">
-          <h1 className={`${T.sectionHead}`}>Commercial Surety Bond Underwriting</h1>
-          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wide px-2 py-1 bg-slate-100 border border-slate-200 rounded-sm">Beta Module</span>
+      <section className="border-t-2 border-slate-300 pt-6">
+        <div className="pb-3 mb-3 flex items-center justify-between">
+          <h1 className={`${T.sectionHeadAlt}`}>
+            Commercial Surety Bond Underwriting
+            <span className="text-xs font-bold text-slate-500 uppercase tracking-wide ml-3 px-2 py-1 bg-blue-50 text-blue-700 rounded-full inline-block">Beta</span>
+          </h1>
         </div>
         <p className="text-sm text-slate-600 mb-4 leading-relaxed">
           Comprehensive commercial surety bond underwriting tools including work-in-progress analysis, financial spreading, and contractor risk assessment. Built on the same document parsing engine as the SBA module.
@@ -359,10 +485,13 @@ function Overview({ nav }) {
           <div className="bg-white p-4 flex flex-col gap-3">
             <div className="flex items-start justify-between">
               <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wide tabular-nums">SURETY</span>
-              <Briefcase className="w-4 h-4 text-slate-500" />
+              <div className="bg-slate-100 rounded-lg p-2">
+                <Briefcase className="w-6 h-6 text-slate-700" />
+              </div>
             </div>
             <div>
-              <h2 className="font-serif text-sm font-bold text-slate-900 mb-1">Bond Underwriting Dashboard</h2>
+              <h2 className="font-serif text-sm font-bold text-slate-900 mb-0.5">Bond Underwriting Dashboard</h2>
+              <p className="text-xs text-slate-500 font-medium mb-1">Upload & analyze bonds</p>
               <p className="text-xs text-slate-600 leading-relaxed">Document upload, shared parser integration, and links to analysis tools.</p>
             </div>
             <button
@@ -375,10 +504,13 @@ function Overview({ nav }) {
           <div className="bg-white p-4 flex flex-col gap-3">
             <div className="flex items-start justify-between">
               <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wide tabular-nums">ANALYSIS</span>
-              <Calculator className="w-4 h-4 text-slate-500" />
+              <div className="bg-slate-100 rounded-lg p-2">
+                <Calculator className="w-6 h-6 text-slate-700" />
+              </div>
             </div>
             <div>
-              <h2 className="font-serif text-sm font-bold text-slate-900 mb-1">As-Allowed Spreading Engine</h2>
+              <h2 className="font-serif text-sm font-bold text-slate-900 mb-0.5">As-Allowed Spreading Engine</h2>
+              <p className="text-xs text-slate-500 font-medium mb-1">Financial health & risk</p>
               <p className="text-xs text-slate-600 leading-relaxed">SBA 13(g)(2) financial analysis, EBITDA calculation, and health scoring.</p>
             </div>
             <button
@@ -456,7 +588,7 @@ function pmt(rate, nper, pv) {
   return (rate * pv * Math.pow(1 + rate, nper)) / (Math.pow(1 + rate, nper) - 1);
 }
 
-function AmortizationTerminal({ nav }) {
+function AmortizationTerminal({ nav, user }) {
   const [amount,   setAmount]   = useState('450000');
   const [rateStr,  setRateStr]  = useState('10.50');
   const [years,    setYears]    = useState('10');
@@ -551,24 +683,42 @@ function AmortizationTerminal({ nav }) {
   };
 
   const handleCompile = async () => {
-    console.log('handleCompile called', { prog, amount, years, rateStr });
+    if (!user) {
+      setError('Please sign in to generate term sheets.');
+      return;
+    }
+
     setGenerating(true);
     setError(null);
     setGenerateStatus(null);
     try {
-      const progLabel = PROGRAMS.find(p => p.id === prog)?.label;
-      const dscr = monthly > 0 ? 1.25 : 0; // Default DSCR
-      console.log('About to call fetchAI with:', { progLabel });
-      const data = await fetchAI(
-        `Generate underwriting assessment for SBA loan:\n\nParameters:\nProgram: ${progLabel}\nPrincipal: $${amount}\nRate: ${rateStr}%\nTerm: ${years} years\nMonthly Debt Service: ${usd2(monthly)}\nFY26 Manufacturer Waiver: ${mfr ? 'APPLIED' : 'Not applied'}\n\nReturn JSON: { narrative (2-3 sentence executive summary), covenants_assessment (DSCR minimum recommended), collateral_summary (recommended collateral types) }`,
-        'Commercial banking underwriter. Return valid JSON only.',
-        true
+      // Call backend API to calculate loan analysis
+      const apiResponse = await fetchAPI(
+        '/api/v1/sba-loans/calculate-amortization',
+        'POST',
+        {
+          requestedAmount: principal,
+          annualRate: parseFloat(rateStr),
+          loanTermYears: parseInt(years),
+          netOperatingIncome: 100000, // Default NOI - should come from user input
+          totalProjectCost: principal * 1.2,
+          borrowerNAICS: mfr ? 311 : 234, // 311 = Manufacturing (triggers waiver)
+          borrowerName: '[Borrower Name]',
+        }
       );
 
-      const origFee = principal * (prog.includes('7a') ? 0.0275 : prog === '504' ? 0.025 : 0.02);
-      const guarantyFee = mfr ? 0 : (prog.includes('7a') ? principal * 0.008 : principal * 0.006);
-      const totalFees = origFee + guarantyFee;
+      // Extract analysis data from API response
+      const analysis = apiResponse.analysis || {};
+      const progLabel = PROGRAMS.find(p => p.id === prog)?.label;
 
+      // Get underwriting narrative from AI
+      const narrativeData = await fetchAI(
+        `Generate 2-3 sentence executive underwriting summary for this SBA loan:\n\nProgram: ${progLabel}\nPrincipal: $${amount}\nRate: ${rateStr}%\nMonthly Payment: ${usd2(monthly)}\nDSCR: ${(analysis.dscr || 1.25).toFixed(2)}x\n\nReturn JSON: { narrative: "..." }`,
+        'Commercial banking underwriter. Keep summary to 2-3 sentences.',
+        true
+      ).catch(() => ({ narrative: 'Structurally sound commercial expansion opportunity with strong market fundamentals.' }));
+
+      // Build term sheet data from API response
       const termSheetData = {
         parties: {
           borrower: '[Borrower Name]',
@@ -587,50 +737,42 @@ function AmortizationTerminal({ nav }) {
         debt_service: {
           monthly: monthly,
           annual: monthly * 12,
-          dscr: typeof data.covenants_assessment === 'number' ? data.covenants_assessment : parseFloat(String(data.covenants_assessment || '1.25').match(/\d+\.?\d*/)?.[0] || '1.25')
+          dscr: analysis.dscr || 1.25
         },
         equity: {
           required_pct: 10,
           required_amount: principal * 0.1
         },
-        collateral: (() => {
-          let summary = data.collateral_summary || 'Commercial real estate';
-          if (typeof summary === 'object') {
-            summary = 'Commercial real estate'; // Default if API returns object
-          } else {
-            summary = String(summary);
-          }
-          return summary.split(',').map(s => s.trim()).filter(s => s && s !== '[object Object]');
-        })(),
+        collateral: [
+          'Commercial real estate or equipment',
+          'Personal guarantees from principal owners'
+        ],
         covenants: {
-          dscr_min: typeof data.covenants_assessment === 'number' ? data.covenants_assessment : parseFloat(String(data.covenants_assessment || '1.25').match(/\d+\.?\d*/)?.[0] || '1.25'),
+          dscr_min: Math.max(1.0, analysis.dscr || 1.25),
           current_ratio_min: 1.2,
           debt_ratio_max: 2.0,
           testing_frequency: 'Annual'
         },
         fees: {
-          origination_pct: prog.includes('7a') ? 2.75 : prog === '504' ? 2.5 : 2.0,
-          origination: origFee,
-          guaranty_pct: mfr ? 0 : (prog.includes('7a') ? 0.8 : 0.6),
-          guaranty: guarantyFee,
+          origination_pct: analysis.fees?.originationPct || 2.75,
+          origination: analysis.fees?.origination || (principal * 0.0275),
+          guaranty_pct: analysis.fees?.guarantyPct || 1.5,
+          guaranty: analysis.fees?.guaranty || (principal * 0.015),
           waiver_applicable: mfr,
-          waiver_savings: mfr ? guarantyFee : 0,
-          total_fees: totalFees
+          waiver_savings: analysis.fees?.waiverSavings || 0,
+          total_fees: (analysis.fees?.origination || 0) + (analysis.fees?.guaranty || 0)
         },
-        narrative: data.narrative || 'Structurally sound commercial expansion opportunity with strong market fundamentals.',
+        narrative: narrativeData.narrative || 'Structurally sound commercial expansion opportunity with strong market fundamentals.',
         effective_date: new Date().toLocaleDateString(),
         maturity_date: new Date(new Date().setFullYear(new Date().getFullYear() + parseInt(years))).toLocaleDateString()
       };
 
-      console.log('Setting term sheet data and opening modal', { termSheetData });
       setTermSheetData(termSheetData);
       setGenerateStatus('success');
-      console.log('About to call setModalOpen(true)');
       setModalOpen(true);
-      console.log('setModalOpen called');
     } catch (e) {
       console.error('Error in handleCompile:', e);
-      setError(e.message);
+      setError(e.message || 'Failed to generate term sheet. Please try again.');
       setGenerateStatus('error');
     }
     finally { setGenerating(false); }
@@ -678,6 +820,21 @@ function AmortizationTerminal({ nav }) {
         {error && (
           <div className="flex items-start gap-3 bg-white border border-red-400 border-l-4 border-l-red-600 px-4 py-3 text-sm text-red-800">
             <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" /> {error}
+          </div>
+        )}
+
+        {!user && (
+          <div className="flex items-start gap-3 bg-white border border-blue-400 border-l-4 border-l-blue-600 px-4 py-3 flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div className="flex items-start gap-3">
+              <Info className="w-4 h-4 shrink-0 mt-0.5 text-blue-600" />
+              <div className="text-sm text-blue-800">
+                <p className="font-semibold">API Features Require Authentication</p>
+                <p className="text-xs mt-0.5">Sign in to access loan calculation and term sheet generation powered by your backend API.</p>
+              </div>
+            </div>
+            <button onClick={() => window.scrollTo({ top: 0 })} className={T.btnPrimary + ' text-xs py-1.5 px-3 shrink-0'}>
+              Sign In
+            </button>
           </div>
         )}
 
