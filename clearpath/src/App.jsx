@@ -29,6 +29,9 @@ import SuretyDashboard from './domains/surety/components/SuretyDashboard';
 import SpreadingEngine from './domains/surety/components/SpreadingEngine';
 import WIPAnalyzer from './domains/surety/components/WIPAnalyzer';
 
+// ── User Profile Component ──
+import { UserProfile } from './components/UserProfile';
+
 // ── Authenticated API Call Helper ──
 async function fetchAPI(endpoint, method = 'GET', body = null) {
   const token = await getAuthToken();
@@ -292,21 +295,11 @@ export default function App() {
             {NAV_ITEMS.map(item => <NavLink key={item.id} {...item} />)}
           </nav>
 
-          {/* Auth Button */}
+          {/* Auth Section */}
           <div className="flex items-center gap-2 shrink-0">
             {!loading && (
               user ? (
-                <div className="flex items-center gap-2">
-                  <span className="hidden sm:block text-xs text-slate-300">{user.email?.split('@')[0]}</span>
-                  <button
-                    onClick={handleSignOut}
-                    className={T.btnSecondary + ' text-xs py-1.5 px-3'}
-                    aria-label="Sign out"
-                  >
-                    <LogOut className="w-3.5 h-3.5" />
-                    <span className="hidden sm:block">Sign Out</span>
-                  </button>
-                </div>
+                <UserProfile />
               ) : (
                 <button
                   onClick={handleSignIn}

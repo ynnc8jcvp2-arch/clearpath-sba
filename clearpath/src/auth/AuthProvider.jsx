@@ -94,25 +94,25 @@ export function AuthProvider({ children }) {
     };
   }, [supabaseClient]);
 
-  // Verify Turnstile CAPTCHA token with backend
+  // Verify reCAPTCHA token with backend
   const verifyCaptchaToken = useCallback(async (token) => {
     try {
-      const response = await fetch('/api/auth/verify-captcha', {
+      const response = await fetch('/api/v1/auth/verify-recaptcha', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ token }),
+        body: JSON.stringify({ token, action: 'login' }),
       });
 
       if (!response.ok) {
         const data = await response.json();
-        throw new Error(data.error || 'CAPTCHA verification failed');
+        throw new Error(data.error || 'reCAPTCHA verification failed');
       }
 
       return true;
     } catch (err) {
-      console.error('CAPTCHA verification error:', err);
+      console.error('reCAPTCHA verification error:', err);
       setError(err.message);
       return false;
     }
