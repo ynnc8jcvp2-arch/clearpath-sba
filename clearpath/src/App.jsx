@@ -246,6 +246,36 @@ export default function App() {
 
   const nav = (p) => { setPage(p); setMobileOpen(false); window.scrollTo({ top: 0, behavior: 'instant' }); };
 
+  const handleUploadDocument = async (file) => {
+    try {
+      // Convert file to base64
+      const reader = new FileReader();
+      const content = await new Promise((resolve, reject) => {
+        reader.onload = () => resolve(reader.result.split(',')[1]); // Extract base64 without data URI prefix
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+
+      // Call surety upload API
+      const response = await fetchAPI('/api/v1/surety/upload', 'POST', {
+        document: {
+          name: file.name,
+          content,
+          type: file.type,
+        },
+        documentType: 'general',
+        extractTables: true,
+        extractText: true,
+      });
+
+      console.log('Document uploaded successfully:', response);
+      return response;
+    } catch (error) {
+      console.error('Document upload failed:', error);
+      throw error;
+    }
+  };
+
   const NAV_ITEMS = [
     { id: 'home',       label: 'Overview'              },
     { id: 'calculator', label: 'Amortization Terminal' },
@@ -338,7 +368,7 @@ export default function App() {
         {page === 'screener'   && <EligibilityScreener nav={nav} />}
         {page === 'checklist'  && <DocumentChecklist />}
         {page === 'compare'    && <ProgramComparison />}
-        {page === 'surety'     && <SuretyDashboard onNavigate={nav} onUploadDocument={() => {}} user={user} />}
+        {page === 'surety'     && <SuretyDashboard onNavigate={nav} onUploadDocument={handleUploadDocument} user={user} />}
         {page === 'spreading'  && <SpreadingEngine onBack={() => nav('surety')} />}
         {page === 'wip'        && <WIPAnalyzer onBack={() => nav('surety')} />}
       </main>

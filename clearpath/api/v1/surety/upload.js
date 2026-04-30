@@ -42,14 +42,14 @@ export default async function handler(req, res) {
   const authError = await verifyAndAttachUser(req);
   if (authError) {
     const { statusCode, body } = authError;
-    return res.status(statusCode).json(JSON.parse(body));
+    return res.status(statusCode).json(typeof body === 'string' ? JSON.parse(body) : body);
   }
 
   // Validate HTTP method
   const methodError = validateHttpMethod(req, ['POST']);
   if (methodError) {
     const { statusCode, body } = formatErrorResponse(methodError);
-    return res.status(statusCode).json(JSON.parse(body));
+    return res.status(statusCode).json(typeof body === 'string' ? JSON.parse(body) : body);
   }
 
   try {
@@ -59,13 +59,14 @@ export default async function handler(req, res) {
     const fieldError = validateRequiredFields({ document }, ['document']);
     if (fieldError) {
       const { statusCode, body } = formatErrorResponse(fieldError);
-      return res.status(statusCode).json(JSON.parse(body));
+      return res.status(statusCode).json(typeof body === 'string' ? JSON.parse(body) : body);
     }
 
     if (!document.name || !document.content) {
-      const error = { error: 'Document must have name and content', statusCode: 400 };
-      const { statusCode, body } = formatErrorResponse(error);
-      return res.status(statusCode).json(JSON.parse(body));
+      return res.status(400).json({
+        error: 'Document must have name and content',
+        timestamp: new Date().toISOString(),
+      });
     }
 
     // Get parser instance
@@ -93,28 +94,31 @@ export default async function handler(req, res) {
     const documentId = `doc_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
     // Return success response
-    const { statusCode, body } = formatSuccessResponse({
-      documentId,
-      documentName: document.name,
-      documentType,
-      parsed: {
-        raw: parseResult.raw,
-        normalized: parseResult.normalized,
-        metadata: parseResult.metadata,
+    return res.status(200).json({
+      success: true,
+      data: {
+        documentId,
+        documentName: document.name,
+        documentType,
+        parsed: {
+          raw: parseResult.raw,
+          normalized: parseResult.normalized,
+          metadata: parseResult.metadata,
+        },
+        qualityMetrics: {
+          hasErrors: parseResult.errors && parseResult.errors.length > 0,
+          errorCount: parseResult.errors?.length || 0,
+          errors: parseResult.errors || [],
+        },
       },
-      qualityMetrics: parseResult.quality,
+      timestamp: new Date().toISOString(),
     });
-
-    return res.status(statusCode).json(JSON.parse(body));
   } catch (error) {
     console.error('Document upload error:', error);
-    const { statusCode, body } = formatErrorResponse(
-      {
-        error: `Failed to process document: ${error.message}`,
-        statusCode: 500,
-      },
-      500
-    );
-    return res.status(statusCode).json(JSON.parse(body));
+    return res.status(500).json({
+      error: `Failed to process document: ${error.message}`,
+      errorType: error.constructor.name,
+      timestamp: new Date().toISOString(),
+    });
   }
 }
