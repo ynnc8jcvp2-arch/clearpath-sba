@@ -36,20 +36,21 @@ import {
   formatSuccessResponse,
 } from '../../../lib/middleware/validation.js';
 import { verifyAndAttachUser } from '../../../lib/middleware/auth.js';
+import { randomUUID } from 'crypto';
 
 export default async function handler(req, res) {
   // Verify authentication
   const authError = await verifyAndAttachUser(req);
   if (authError) {
     const { statusCode, body } = authError;
-    return res.status(statusCode).json(typeof body === 'string' ? JSON.parse(body) : body);
+    return res.status(statusCode).json(body);
   }
 
   // Validate HTTP method
   const methodError = validateHttpMethod(req, ['POST']);
   if (methodError) {
     const { statusCode, body } = formatErrorResponse(methodError);
-    return res.status(statusCode).json(typeof body === 'string' ? JSON.parse(body) : body);
+    return res.status(statusCode).json(body);
   }
 
   try {
@@ -59,14 +60,22 @@ export default async function handler(req, res) {
     const fieldError = validateRequiredFields({ document }, ['document']);
     if (fieldError) {
       const { statusCode, body } = formatErrorResponse(fieldError);
-      return res.status(statusCode).json(typeof body === 'string' ? JSON.parse(body) : body);
+      return res.status(statusCode).json(body);
     }
 
+    // Validate document structure (Issue #8: Type validation)
     if (!document.name || !document.content) {
-      return res.status(400).json({
-        error: 'Document must have name and content',
-        timestamp: new Date().toISOString(),
+      const { statusCode, body } = formatErrorResponse({
+        message: 'Document must have name and content properties',
       });
+      return res.status(statusCode).json(body);
+    }
+
+    if (typeof document.name !== 'string' || !document.name.trim()) {
+      const { statusCode, body } = formatErrorResponse({
+        message: 'Document name must be a non-empty string',
+      });
+      return res.status(statusCode).json(body);
     }
 
     // Get parser instance
@@ -86,12 +95,18 @@ export default async function handler(req, res) {
       extractText,
     });
 
+    // Issue #3: Fail if parsing encountered errors (don't silently succeed)
     if (parseResult.errors && parseResult.errors.length > 0) {
-      console.warn('Parsing warnings/errors:', parseResult.errors);
+      console.warn('Parsing failed:', parseResult.errors);
+      const { statusCode, body } = formatErrorResponse({
+        message: `Document parsing failed with ${parseResult.errors.length} error(s)`,
+        details: parseResult.errors,
+      });
+      return res.status(statusCode).json(body);
     }
 
-    // Generate document ID for reference
-    const documentId = `doc_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    // Issue #5: Use UUID for guaranteed uniqueness
+    const documentId = `doc_${randomUUID()}`;
 
     // Return success response
     return res.status(200).json({
