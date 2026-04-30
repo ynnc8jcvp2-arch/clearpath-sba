@@ -50,12 +50,13 @@
 
 import { verifyAndAttachUser } from '../../../lib/middleware/auth.js';
 import { requirePermission, enforceDomainIsolation } from '../../../lib/middleware/rbac.js';
-import { validateRequestBody, FINANCIAL_SCHEMA } from '../../../lib/middleware/sanitization.js';
+import { validateRequestBody, FINANCIAL_SCHEMA, formatErrorResponse } from '../../../lib/middleware/sanitization.js';
 import { asyncHandler } from '../../../lib/middleware/exceptions.js';
 import { auditLog } from '../../../src/shared/security/auditLogger.js';
 import { SpreadingEngine } from '../../../src/domains/surety/services/spreadingEngine.js';
 import { WIPAnalyzer } from '../../../src/domains/surety/services/wipAnalyzer.js';
 import { createClient } from '@supabase/supabase-js';
+import { randomUUID } from 'crypto';
 
 const supabaseClient = createClient(
   process.env.VITE_SUPABASE_URL,
@@ -100,7 +101,26 @@ export default asyncHandler(async (req, res) => {
     spreadingOptions = {},
   } = req.body || {};
 
-  const analysisId = `analysis_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  // Issue #8: Type validation - ensure all numeric fields are actually numbers
+  const numericFields = ['revenue', 'grossProfit', 'expenses', 'netIncome', 'equity', 'assets', 'businessAge'];
+  for (const field of numericFields) {
+    if (financials[field] !== undefined && typeof financials[field] !== 'number') {
+      const { statusCode, body } = formatErrorResponse({
+        message: `Field "${field}" must be a number, got ${typeof financials[field]}`,
+      });
+      return res.status(statusCode).json(body);
+    }
+  }
+
+  if (financials.liabilities && typeof financials.liabilities.total !== 'number') {
+    const { statusCode, body } = formatErrorResponse({
+      message: 'Field "liabilities.total" must be a number',
+    });
+    return res.status(statusCode).json(body);
+  }
+
+  // Issue #5: Use UUID for guaranteed uniqueness
+  const analysisId = `analysis_${randomUUID()}`;
   const timestamp = new Date().toISOString();
 
   // ✅ 5. PREPARE NORMALIZED DATA STRUCTURE
@@ -133,10 +153,12 @@ export default asyncHandler(async (req, res) => {
       );
     } catch (error) {
       console.error('Spreading analysis error:', error);
-      spreadingAnalysis = {
-        error: `Spreading analysis failed: ${error.message}`,
-        errorType: 'SPREADING_FAILED'
-      };
+      // Issue #7: Return 500 for critical analysis failures
+      const { statusCode, body } = formatErrorResponse({
+        message: `Spreading analysis failed: ${error.message}`,
+        code: 'SPREADING_ENGINE_ERROR',
+      });
+      return res.status(statusCode).json(body);
     }
   }
 
@@ -148,17 +170,20 @@ export default asyncHandler(async (req, res) => {
       wipAnalysis = await wipAnalyzer.analyzeWIP(normalizedData, wipDetails);
     } catch (error) {
       console.error('WIP analysis error:', error);
-      wipAnalysis = {
-        error: `WIP analysis failed: ${error.message}`,
-        errorType: 'WIP_FAILED'
-      };
+      // Issue #7: Return 500 for critical analysis failures
+      const { statusCode, body } = formatErrorResponse({
+        message: `WIP analysis failed: ${error.message}`,
+        code: 'WIP_ANALYZER_ERROR',
+      });
+      return res.status(statusCode).json(body);
     }
   }
 
   // ✅ 8. GENERATE UNDERWRITING SUMMARY
   const underwritingSummary = generateUnderwritingSummary({
     spreadingAnalysis,
-    wipAnalysis
+    wipAnalysis,
+    financials: normalizedData.financials  // Pass financials for ratio analysis
   });
 
   // ✅ 9. AUDIT LOG: Record successful analysis
@@ -208,6 +233,7 @@ export default asyncHandler(async (req, res) => {
 
 /**
  * Generate underwriting summary by synthesizing all analyses
+ * Issue #4: Improved risk assessment based on financial ratios + warnings
  */
 function generateUnderwritingSummary(analysis) {
   const summary = {
@@ -216,6 +242,22 @@ function generateUnderwritingSummary(analysis) {
     recommendations: [],
     warnings: [],
   };
+
+  // Calculate financial health ratios (Issue #4)
+  const financials = analysis.financials || {};
+  const revenue = financials.revenue || 0;
+  const netIncome = financials.netIncome || 0;
+  const liabilities = financials.liabilities?.total || 0;
+  const equity = financials.equity || 0;
+  const assets = financials.assets || revenue; // Fallback estimate
+
+  const metrics = {
+    profitMargin: revenue > 0 ? (netIncome / revenue) : 0,
+    debtToEquity: equity > 0 ? (liabilities / equity) : liabilities > 0 ? Infinity : 0,
+    debtToAssets: assets > 0 ? (liabilities / assets) : 0,
+  };
+
+  summary.keyMetrics.financialRatios = metrics;
 
   // Analyze spreading results
   if (analysis.spreadingAnalysis && !analysis.spreadingAnalysis.error) {
@@ -255,17 +297,46 @@ function generateUnderwritingSummary(analysis) {
     }
   }
 
-  // Determine overall risk level
-  const warningCount = summary.warnings.length;
-  if (warningCount === 0) {
+  // Determine overall risk level - combines warnings + financial health
+  // Issue #4: Risk based on multiple factors, not just warning count
+  let riskScore = 0; // 0-10 scale: 0=low, 3=moderate, 7+=high
+
+  // Financial health factors
+  if (metrics.profitMargin < 0) riskScore += 3; // Negative profit is critical
+  else if (metrics.profitMargin < 0.05) riskScore += 2; // Thin margins
+
+  if (metrics.debtToEquity > 3) riskScore += 3; // High leverage
+  else if (metrics.debtToEquity > 1.5) riskScore += 1; // Moderate leverage
+
+  if (metrics.debtToAssets > 0.7) riskScore += 2; // High debt relative to assets
+
+  // Warning severity factors
+  const severityWeights = {
+    critical: 4,
+    high: 2,
+    medium: 1,
+    low: 0.5,
+  };
+
+  summary.warnings.forEach(warning => {
+    // Extract severity from "[Type] message (severity)" format
+    const severityMatch = warning.match(/\((\w+)\)$/);
+    if (severityMatch) {
+      const severity = severityMatch[1].toLowerCase();
+      riskScore += severityWeights[severity] || 1;
+    }
+  });
+
+  // Assign risk level based on accumulated score
+  if (riskScore < 2) {
     summary.overallRiskLevel = 'low';
     summary.recommendations.push('Proceed with further underwriting review');
-  } else if (warningCount <= 2) {
+  } else if (riskScore < 5) {
     summary.overallRiskLevel = 'moderate';
     summary.recommendations.push('Address identified risk factors before proceeding');
   } else {
     summary.overallRiskLevel = 'high';
-    summary.recommendations.push('Escalate to senior underwriter for review');
+    summary.recommendations.push('Escalate to senior underwriter for detailed review');
   }
 
   return summary;
