@@ -48,10 +48,10 @@
  * }
  */
 
-import { verifyAndAttachUser } from '../../middleware/auth.js';
-import { requirePermission, enforceDomainIsolation } from '../../middleware/rbac.js';
-import { validateRequestBody, FINANCIAL_SCHEMA } from '../../middleware/sanitization.js';
-import { asyncHandler } from '../../middleware/exceptions.js';
+import { verifyAndAttachUser } from '../../../lib/middleware/auth.js';
+import { requirePermission, enforceDomainIsolation } from '../../../lib/middleware/rbac.js';
+import { validateRequestBody, FINANCIAL_SCHEMA } from '../../../lib/middleware/sanitization.js';
+import { asyncHandler } from '../../../lib/middleware/exceptions.js';
 import { auditLog } from '../../../src/shared/security/auditLogger.js';
 import { SpreadingEngine } from '../../../src/domains/surety/services/spreadingEngine.js';
 import { WIPAnalyzer } from '../../../src/domains/surety/services/wipAnalyzer.js';

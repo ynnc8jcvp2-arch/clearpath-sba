@@ -48,8 +48,8 @@ import {
   validateRequiredFields,
   formatErrorResponse,
   formatSuccessResponse,
-} from '../../middleware/validation.js';
-import { verifyAndAttachUser } from '../../middleware/auth.js';
+} from '../../../lib/middleware/validation.js';
+import { verifyAndAttachUser } from '../../../lib/middleware/auth.js';
 import { calculateLoanAnalysis } from '../../../src/domains/sba-loans/services/loanCalculator.js';
 
 export default async function handler(req, res) {

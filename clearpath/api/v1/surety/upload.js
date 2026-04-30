@@ -34,8 +34,8 @@ import {
   validateRequiredFields,
   formatErrorResponse,
   formatSuccessResponse,
-} from '../../middleware/validation.js';
-import { verifyAndAttachUser } from '../../middleware/auth.js';
+} from '../../../lib/middleware/validation.js';
+import { verifyAndAttachUser } from '../../../lib/middleware/auth.js';
 
 export default async function handler(req, res) {
   // Verify authentication
