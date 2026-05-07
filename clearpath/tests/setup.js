@@ -4,34 +4,63 @@
  */
 
 // Mock Supabase client for testing
+// Supports full fluent builder chain: from().insert().select(), from().select().eq().eq().order(), etc.
 export function createMockSupabaseClient() {
+  function makeBuilder(table, resolvedData) {
+    // The builder is both thenable (so await works) and has chainable methods
+    const builder = {
+      _data: resolvedData,
+
+      // Thenable — allows `await builder`
+      then(onFulfilled, onRejected) {
+        return Promise.resolve({ data: this._data, error: null }).then(onFulfilled, onRejected);
+      },
+      catch(onRejected) {
+        return Promise.resolve({ data: this._data, error: null }).catch(onRejected);
+      },
+
+      // Chain methods — each returns a new builder with same or narrowed data
+      select(_cols) {
+        return makeBuilder(table, this._data);
+      },
+      insert(rows) {
+        const inserted = Array.isArray(rows)
+          ? rows.map((r, i) => ({ id: `${table}_${Date.now()}_${i}`, ...r }))
+          : [{ id: `${table}_${Date.now()}`, ...rows }];
+        return makeBuilder(table, inserted);
+      },
+      update(patch) {
+        const updated = Array.isArray(this._data)
+          ? this._data.map(r => ({ ...r, ...patch }))
+          : [{ id: `${table}_123`, ...patch }];
+        return makeBuilder(table, updated);
+      },
+      eq(_col, _val) {
+        // Narrow data — keep as-is (mock doesn't filter, tests just need array)
+        return makeBuilder(table, this._data);
+      },
+      order(_col, _opts) {
+        return makeBuilder(table, this._data);
+      },
+      async single() {
+        const row = Array.isArray(this._data) ? this._data[0] : this._data;
+        return { data: row ?? { id: `${table}_123` }, error: null };
+      },
+      limit(_n) {
+        return makeBuilder(table, this._data);
+      },
+      range(_from, _to) {
+        return makeBuilder(table, this._data);
+      },
+    };
+    return builder;
+  }
+
   return {
-    from: (table) => ({
-      insert: async (data) => ({
-        data: Array.isArray(data) ? [{ id: `${table}_${Date.now()}`, ...data[0] }] : data,
-        error: null,
-      }),
-      select: () => ({
-        eq: (col, val) => ({
-          single: async () => ({
-            data: { id: `${table}_123`, [col]: val },
-            error: null,
-          }),
-          order: () => ({
-            eq: () => Promise.resolve({ data: [], error: null }),
-          }),
-        }),
-        order: () => Promise.resolve({ data: [], error: null }),
-      }),
-      update: (data) => ({
-        eq: () => ({
-          select: async () => ({
-            data: [{ id: `${table}_123`, ...data }],
-            error: null,
-          }),
-        }),
-      }),
-    }),
+    from(table) {
+      // Default data seed: one row with predictable id
+      return makeBuilder(table, [{ id: `${table}_123` }]);
+    },
   };
 }
 

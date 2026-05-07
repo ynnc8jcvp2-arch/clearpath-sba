@@ -84,12 +84,14 @@ export function generateTermSheet(params) {
     },
 
     parties: {
-      borrower: {
+      borrower: borrowerName,
+      borrowerDetails: {
         name: borrowerName,
         businessDescription,
         naicsCode: borrowerNAICS,
       },
-      lender: {
+      lender: lenderName,
+      lenderDetails: {
         name: lenderName,
       },
       originatingOfficer: {
@@ -100,14 +102,16 @@ export function generateTermSheet(params) {
 
     facility: {
       amount: Math.round(requestedAmount * 100) / 100,
+      rate: Math.round(annualRate * 100) / 100,
+      term: loanTermYears,
       program,
-      rate: {
-        type: 'Prime + Spread', // Or fixed rate
+      rateDetails: {
+        type: 'Prime + Spread',
         annual: Math.round(annualRate * 100) / 100,
         index: 'Prime',
-        margin: Math.round((annualRate - 8.5) * 100) / 100, // Assuming current prime is ~8.5%
+        margin: Math.round((annualRate - 8.5) * 100) / 100,
       },
-      term: {
+      termDetails: {
         years: loanTermYears,
         months: loanTermYears * 12,
         monthlyPayment: analysis.monthlyPayment.amount,
@@ -136,6 +140,9 @@ export function generateTermSheet(params) {
     },
 
     fees: {
+      // Flat fields for test compatibility
+      guarantyFee: analysis.fees.guarantyFee,
+      waiverApplicable: analysis.fees.isManufacturerWaiverApplied,
       origination: {
         percent: analysis.fees.originationFeePercent,
         amount: analysis.fees.originationFee,
@@ -210,20 +217,21 @@ export function generateTermSheet(params) {
       ],
     },
 
-    // For HTML rendering in TermSheetTemplate.jsx
-    htmlTemplate: buildHTMLTemplate({
-      borrowerName,
-      lenderName,
-      loanOfficer,
-      facility: facility,
-      fees: fees,
-      dscr: analysis.dscr,
-      covenants: covenants,
-      narrative: narrative,
-      effectiveDate: new Date(effectiveDate),
-      maturityDate,
-    }),
   };
+
+  // Build HTML template after termSheet is constructed (avoids undefined variable refs)
+  termSheet.htmlTemplate = buildHTMLTemplate({
+    borrowerName,
+    lenderName,
+    loanOfficer,
+    facility: termSheet.facility,
+    fees: termSheet.fees,
+    dscr: analysis.dscr,
+    covenants: termSheet.covenants,
+    narrative: termSheet.narrative,
+    effectiveDate: new Date(effectiveDate),
+    maturityDate,
+  });
 
   return termSheet;
 }
@@ -340,6 +348,13 @@ function buildHTMLTemplate(data) {
 /**
  * Export function for API endpoint usage
  */
+export {
+  identifyStrengths,
+  identifyRisks,
+  generateDefaultNarrative,
+  buildHTMLTemplate,
+};
+
 export default {
   generateTermSheet,
 };
