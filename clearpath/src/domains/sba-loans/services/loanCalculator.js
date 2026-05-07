@@ -76,9 +76,8 @@ function generateAmortizationSchedule(principal, annualRate, years, startDate = 
  * DSCR = Net Operating Income / Total Debt Service
  * Minimum acceptable DSCR for SBA 7(a): 1.15x to 1.25x depending on borrower strength
  */
-function calculateDSCR(netOperatingIncome, monthlyDebtService) {
-  if (monthlyDebtService === 0) return 0;
-  const annualDebtService = monthlyDebtService * 12;
+function calculateDSCR(netOperatingIncome, annualDebtService) {
+  if (annualDebtService === 0) return 0;
   return netOperatingIncome / annualDebtService;
 }
 
@@ -123,7 +122,7 @@ function validateLoanAffordability(dscr, minimumDSCR = 1.25) {
     dscr: Math.round(dscr * 100) / 100,
     minimumRequired: minimumDSCR,
     shortfall: Math.max(0, Math.round((minimumDSCR - dscr) * 100) / 100),
-    status: dscr >= minimumDSCR ? 'PASS' : dscr >= 1.15 ? 'CONDITIONAL' : 'FAIL',
+    status: dscr > minimumDSCR ? 'PASS' : dscr >= 1.15 ? 'CONDITIONAL' : 'FAIL',
   };
 }
 
@@ -187,8 +186,8 @@ export function calculateLoanAnalysis(params) {
   // Calculate total interest
   const totalInterest = schedule.reduce((sum, payment) => sum + payment.interest, 0);
 
-  // Calculate DSCR
-  const dscr = calculateDSCR(netOperatingIncome, monthlyDebtService);
+  // Calculate DSCR (pass annual values: annual NOI / annual debt service)
+  const dscr = calculateDSCR(netOperatingIncome, annualDebtService);
   const dscrValidation = validateLoanAffordability(dscr, minimumDSCR);
 
   // Calculate equity requirement
@@ -241,6 +240,15 @@ export function calculateLoanAnalysis(params) {
 /**
  * Export all calculation functions for use in different contexts
  */
+export {
+  calculateMonthlyPayment,
+  generateAmortizationSchedule,
+  calculateDSCR,
+  calculateSBAFees,
+  validateLoanAffordability,
+  calculateEquityRequirement,
+};
+
 export default {
   calculateMonthlyPayment,
   generateAmortizationSchedule,
