@@ -22,3 +22,12 @@
 
 # Documentation (optional, can include if needed)
 # *.md
+
+# Dependencies — let Vercel install fresh (node_modules committed to git causes file-count limits)
+node_modules/
+
+# Built output — Vercel builds from source
+dist/
+
+# Test files
+tests/
