@@ -25,6 +25,7 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [supabaseClient, setSupabaseClient] = useState(null);
+  const [userRole, setUserRole] = useState(null);
 
   // Initialize Supabase client
   useEffect(() => {
@@ -76,13 +77,26 @@ export function AuthProvider({ children }) {
         setUser(newSession?.user || null);
 
         if (event === 'SIGNED_OUT') {
-          // Clear any local state on sign out
           setUser(null);
           setSession(null);
+          setUserRole(null);
+        }
+
+        if (event === 'SIGNED_IN' && newSession?.user) {
+          // Fetch role on sign in
+          try {
+            const { data } = await supabaseClient
+              .from('user_roles')
+              .select('role')
+              .eq('user_id', newSession.user.id)
+              .single();
+            setUserRole(data?.role || 'viewer');
+          } catch {
+            setUserRole('viewer');
+          }
         }
 
         if (event === 'TOKEN_REFRESHED') {
-          // Token was automatically refreshed
           setSession(newSession);
         }
       }
@@ -167,17 +181,28 @@ export function AuthProvider({ children }) {
     }
   }, [supabaseClient]);
 
-  // Get user role (placeholder for Phase 1)
+  // Get user role — queries user_roles table in Supabase
   const getUserRole = useCallback(async () => {
     if (!user || !supabaseClient) return null;
 
     try {
-      // Phase 1 TODO: Query user_roles table
-      // For now, return placeholder
-      return 'underwriter'; // or 'admin', 'viewer'
+      const { data, error: roleError } = await supabaseClient
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', user.id)
+        .single();
+
+      if (roleError) {
+        // If no row found, default to viewer (least privilege)
+        if (roleError.code === 'PGRST116') return 'viewer';
+        console.error('Failed to fetch user role:', roleError);
+        return 'viewer';
+      }
+
+      return data?.role || 'viewer';
     } catch (err) {
       console.error('Failed to fetch user role:', err);
-      return null;
+      return 'viewer';
     }
   }, [user, supabaseClient]);
 
@@ -187,6 +212,7 @@ export function AuthProvider({ children }) {
     loading,
     error,
     isAuthenticated: !!user && !!session,
+    userRole,
     signInWithGoogle,
     signOut,
     getUserRole,

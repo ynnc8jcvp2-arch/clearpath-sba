@@ -313,9 +313,16 @@ async function sendSecurityAlert({ action, userId, ipAddress, responseStatus, er
 
   console.error('SECURITY ALERT:', JSON.stringify(alert));
 
-  // TODO: Integrate with monitoring service
-  // await sentry.captureException(new Error(`Security Alert: ${action}`), { extra: alert });
-  // await slack.postMessage(channel='#security-alerts', text=`Alert: ${JSON.stringify(alert)}`);
+  // Post alert to backend logging endpoint (fire-and-forget)
+  try {
+    await fetch('/api/v1/audit/alert', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(alert),
+    }).catch(() => {}); // Swallow network errors — never block the caller
+  } catch {
+    // Intentionally swallowed — monitoring must never break the app
+  }
 }
 
 export default {

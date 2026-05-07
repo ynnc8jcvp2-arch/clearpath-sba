@@ -1,152 +1,162 @@
 /**
  * Data Normalizer Module
  *
- * Converts raw extracted data into a standardized schema
- * that both SBA and Surety domains understand.
- *
- * This is the contract layer between the core parser and domain-specific logic.
+ * Converts raw OCR + table extraction output into a standardized schema
+ * using Claude for intelligent field mapping and value extraction.
  */
 
 export class DataNormalizer {
   /**
-   * Normalize extracted data into standard format
+   * Normalize extracted data into standard format using Claude
    * @param {Object} rawData - Output from OCR + Table Extractor
-   * @param {string} documentType - Type of document being parsed
-   * @returns {Object} Normalized data adhering to standard schema
+   * @param {string} documentType
+   * @returns {Promise<Object>} Normalized data
    */
-  normalize(rawData, documentType) {
+  async normalize(rawData, documentType) {
+    const financials = await this.extractFinancialData(rawData);
+    const business = await this.extractBusinessData(rawData);
+
     return {
       documentMetadata: {
-        type: documentType,
+        type: documentType || rawData.documentType || 'unknown',
         extractedAt: new Date().toISOString(),
-        sourceFormat: 'pdf', // Could be image, pdf, csv, etc.
+        sourceFormat: 'pdf',
+        confidence: rawData.confidence || 0,
       },
-      financials: this.extractFinancialData(rawData),
-      business: this.extractBusinessData(rawData),
+      financials,
+      business,
       owners: this.extractOwnershipData(rawData),
-      raw: rawData, // Keep raw for reference/debugging
+      raw: rawData,
     };
   }
 
   /**
-   * Extract financial metrics from raw data
+   * Extract financial metrics using Claude for intelligent parsing
    */
-  extractFinancialData(rawData) {
-    const financials = {
-      // Income Statement
-      revenue: 0,
-      expenses: 0,
-      netIncome: 0,
-      grossProfit: 0,
-      operatingIncome: 0,
-
-      // Balance Sheet
-      assets: {
-        current: 0,
-        fixed: 0,
-        total: 0,
-      },
-      liabilities: {
-        current: 0,
-        longTerm: 0,
-        total: 0,
-      },
+  async extractFinancialData(rawData) {
+    const baseFinancials = {
+      revenue: 0, expenses: 0, netIncome: 0, grossProfit: 0, operatingIncome: 0,
+      assets: { current: 0, fixed: 0, total: 0 },
+      liabilities: { current: 0, longTerm: 0, total: 0 },
       equity: 0,
-
-      // Cash Flow
-      operatingCashFlow: 0,
-      investingCashFlow: 0,
-      financingCashFlow: 0,
-
-      // Ratios (calculated)
-      currentRatio: 0,
-      debtToEquity: 0,
-      profitMargin: 0,
-      dscr: 0, // Debt Service Coverage Ratio
+      operatingCashFlow: 0, investingCashFlow: 0, financingCashFlow: 0,
+      currentRatio: 0, debtToEquity: 0, profitMargin: 0, dscr: 0,
     };
 
-    // TODO: Parse rawData.tables to populate these fields
-    // This requires intelligent table parsing and column identification
+    if (!rawData.text && (!rawData.tables || rawData.tables.length === 0)) {
+      return baseFinancials;
+    }
 
-    return financials;
+    try {
+      const contextText = [
+        rawData.text?.slice(0, 6000) || '',
+        ...(rawData.tables || []).slice(0, 3),
+      ].join('\n\n');
+
+      const response = await fetch('/api/ai', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          systemInstruction: `You are a financial spreading expert. Extract financial metrics from document text.
+All monetary values should be in whole dollars (no cents). Use 0 for unavailable values.
+Return JSON with these exact keys: revenue, expenses, netIncome, grossProfit, operatingIncome,
+assets (object: current, fixed, total), liabilities (object: current, longTerm, total),
+equity, operatingCashFlow, investingCashFlow, financingCashFlow,
+currentRatio, debtToEquity, profitMargin, dscr`,
+          prompt: `Extract financial metrics from this document:\n\n${contextText}`,
+          jsonMode: true,
+        }),
+      });
+
+      if (response.ok) {
+        const { result } = await response.json();
+        if (result && typeof result === 'object') {
+          return {
+            ...baseFinancials,
+            ...result,
+            assets: { ...baseFinancials.assets, ...(result.assets || {}) },
+            liabilities: { ...baseFinancials.liabilities, ...(result.liabilities || {}) },
+          };
+        }
+      }
+    } catch (err) {
+      console.error('Financial data extraction failed:', err);
+    }
+
+    return baseFinancials;
   }
 
   /**
    * Extract business information from raw data
    */
-  extractBusinessData(rawData) {
-    return {
-      name: null,
-      industry: null,
-      yearsFounded: null,
-      numberOfEmployees: null,
-      businessType: null, // sole-proprietor, llc, corporation, etc.
-      principalAddress: null,
-      taxId: null, // EIN/TIN
-      description: null,
+  async extractBusinessData(rawData) {
+    const base = {
+      name: null, industry: null, yearsFounded: null,
+      numberOfEmployees: null, businessType: null,
+      principalAddress: null, taxId: null, description: null,
     };
+
+    if (!rawData.text) return base;
+
+    try {
+      const response = await fetch('/api/ai', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          systemInstruction: `Extract business information from a financial document. Return JSON with:
+name, industry, yearsFounded (number or null), numberOfEmployees (number or null),
+businessType (sole-proprietor/llc/corporation/partnership/other), principalAddress, taxId (EIN), description.
+Use null for any field not found.`,
+          prompt: `Extract business info from:\n\n${rawData.text?.slice(0, 3000)}`,
+          jsonMode: true,
+        }),
+      });
+
+      if (response.ok) {
+        const { result } = await response.json();
+        if (result) return { ...base, ...result };
+      }
+    } catch (err) {
+      console.error('Business data extraction failed:', err);
+    }
+
+    return base;
   }
 
   /**
-   * Extract ownership and principal information
+   * Extract ownership data (synchronous — no AI needed for basic structure)
    */
   extractOwnershipData(rawData) {
     return {
-      principals: [
-        {
-          name: null,
-          title: null,
-          ownership: 0, // percentage
-          personalCreditScore: null,
-          netWorth: null,
-        },
-      ],
+      principals: [{ name: null, title: null, ownership: 0, personalCreditScore: null, netWorth: null }],
       guarantors: [],
     };
   }
 
   /**
-   * Validate that normalized data meets minimum requirements
+   * Validate normalized data
    */
   validate(normalized) {
     const errors = [];
-
-    // Check required financial fields
-    if (!normalized.financials) {
-      errors.push('Missing financials section');
-    }
-
-    if (!normalized.business) {
-      errors.push('Missing business section');
-    }
-
-    // Check data quality
-    if (normalized.financials.revenue === 0) {
-      errors.push('Revenue is zero - check extraction');
-    }
-
-    return {
-      isValid: errors.length === 0,
-      errors,
-    };
+    if (!normalized.financials) errors.push('Missing financials section');
+    if (!normalized.business) errors.push('Missing business section');
+    if (normalized.financials?.revenue === 0) errors.push('Revenue is zero — check extraction');
+    return { isValid: errors.length === 0, errors };
   }
 
   /**
    * Transform normalized data for a specific domain
-   * Each domain gets a consistent starting point but can request custom fields
    */
   transformForDomain(normalized, domainName) {
-    const baseTransform = {
+    const base = {
       documentMetadata: normalized.documentMetadata,
       financials: normalized.financials,
       business: normalized.business,
       owners: normalized.owners,
     };
 
-    // Add domain-specific fields if needed
     if (domainName === 'surety') {
-      baseTransform.suretyContext = {
-        // Fields that surety domain cares about
+      base.suretyContext = {
         underwritingDate: new Date().toISOString(),
         spreaderRequired: true,
         wipAnalysisRequired: true,
@@ -154,14 +164,13 @@ export class DataNormalizer {
     }
 
     if (domainName === 'sba') {
-      baseTransform.sbaContext = {
-        // Fields that SBA domain cares about
+      base.sbaContext = {
         loanPurpose: null,
         sbaProgram: null,
         guarantyPercentage: 0,
       };
     }
 
-    return baseTransform;
+    return base;
   }
 }
