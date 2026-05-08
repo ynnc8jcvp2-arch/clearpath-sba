@@ -371,6 +371,7 @@ export default function App() {
         {page === 'surety'     && <SuretyDashboard onNavigate={nav} onUploadDocument={handleUploadDocument} user={user} />}
         {page === 'spreading'  && <SpreadingEngine onBack={() => nav('surety')} />}
         {page === 'wip'        && <WIPAnalyzer onBack={() => nav('surety')} />}
+        {page === 'contact'    && <ContactPage />}
       </main>
 
       <SpeedInsights />
@@ -378,7 +379,36 @@ export default function App() {
       {/* ── Footer ── */}
       <footer className="bg-white border-t border-slate-300 mt-8">
         <div className="max-w-7xl mx-auto px-4 py-6">
-          <div className="mt-6 pt-5 border-t border-slate-200">
+          {/* Contact + Links Row */}
+          <div className="grid md:grid-cols-3 gap-6 mb-6">
+            {/* Contact Info */}
+            <div>
+              <p className="text-[10px] font-bold text-slate-600 uppercase tracking-wide mb-2">Contact</p>
+              <a href="mailto:support@clearpathsbaloan.com" className="text-xs text-[#1B3A6B] hover:underline font-medium">
+                support@clearpathsbaloan.com
+              </a>
+              <p className="text-xs text-slate-600 mt-1">Response within 1-2 business days</p>
+            </div>
+            {/* Quick Links */}
+            <div>
+              <p className="text-[10px] font-bold text-slate-600 uppercase tracking-wide mb-2">Quick Links</p>
+              <div className="flex flex-col gap-1">
+                <button onClick={() => nav('calculator')} className="text-xs text-[#1B3A6B] hover:underline text-left">Amortization Terminal</button>
+                <button onClick={() => nav('screener')} className="text-xs text-[#1B3A6B] hover:underline text-left">Eligibility Screener</button>
+                <button onClick={() => nav('contact')} className="text-xs text-[#1B3A6B] hover:underline text-left">Contact Form</button>
+              </div>
+            </div>
+            {/* Resources */}
+            <div>
+              <p className="text-[10px] font-bold text-slate-600 uppercase tracking-wide mb-2">Resources</p>
+              <div className="flex flex-col gap-1">
+                <a href="https://www.sba.gov/funding-programs/loans" target="_blank" rel="noopener noreferrer" className="text-xs text-[#1B3A6B] hover:underline">SBA.gov Loan Programs</a>
+                <a href="https://www.sba.gov/document/sop-50-10-7-lender-development-company-loan-programs" target="_blank" rel="noopener noreferrer" className="text-xs text-[#1B3A6B] hover:underline">SBA SOP 50 10 7</a>
+              </div>
+            </div>
+          </div>
+          {/* Disclaimer */}
+          <div className="pt-5 border-t border-slate-200">
             <p className="text-[10px] font-bold text-slate-600 uppercase tracking-wide mb-2">
               Legal Disclaimer &amp; Terms of Use
             </p>
@@ -1465,6 +1495,101 @@ function ProgramComparison() {
         </table>
       </div>
 
+    </div>
+  );
+}
+
+// ═══════════════════════════════════════════════════════════
+// CONTACT PAGE
+// ═══════════════════════════════════════════════════════════
+function ContactPage() {
+  const [form, setForm] = useState({ name: '', email: '', subject: '', message: '' });
+  const [status, setStatus] = useState(null);
+  const [errorMsg, setErrorMsg] = useState('');
+
+  const update = (field) => (e) => setForm(f => ({ ...f, [field]: e.target.value }));
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!form.name.trim() || !form.email.trim() || !form.message.trim()) return;
+    setStatus('sending');
+    setErrorMsg('');
+    try {
+      const res = await fetch('/api/v1/contact', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(form),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Submission failed');
+      setStatus('success');
+      setForm({ name: '', email: '', subject: '', message: '' });
+    } catch (err) {
+      setErrorMsg(err.message);
+      setStatus('error');
+    }
+  };
+
+  return (
+    <div className="max-w-2xl mx-auto space-y-4">
+      <div className="border-b border-slate-300 pb-3">
+        <h1 className="font-serif text-xl font-bold text-slate-900">Contact Us</h1>
+        <p className="text-xs text-slate-600 mt-0.5">Questions, feedback, or partnership inquiries</p>
+      </div>
+
+      {status === 'success' ? (
+        <div className="bg-white border border-green-300 border-l-4 border-l-green-600 p-6">
+          <p className="text-sm font-semibold text-green-800 mb-1">Message Sent</p>
+          <p className="text-sm text-green-700">Thank you for reaching out. We will respond within 1-2 business days.</p>
+          <button onClick={() => setStatus(null)} className="mt-4 text-xs font-bold text-[#1B3A6B] uppercase tracking-wide hover:underline cursor-pointer">
+            Send Another Message
+          </button>
+        </div>
+      ) : (
+        <form onSubmit={handleSubmit} className="bg-white border border-slate-300 overflow-hidden">
+          <div className="bg-slate-50 border-b border-slate-300 px-5 py-3">
+            <p className="text-xs font-bold text-slate-900 uppercase tracking-wide">Send a Message</p>
+          </div>
+          <div className="p-5 space-y-4">
+            {status === 'error' && (
+              <div className="flex items-start gap-3 border border-red-400 border-l-4 border-l-red-600 px-4 py-3 text-sm text-red-800">
+                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" /> {errorMsg}
+              </div>
+            )}
+            <div className="grid sm:grid-cols-2 gap-4">
+              <div>
+                <label htmlFor="c-name" className="block text-xs font-semibold text-slate-700 uppercase tracking-wide mb-1.5">Full Name <span className="text-red-600">*</span></label>
+                <input id="c-name" type="text" value={form.name} onChange={update('name')} required className="w-full px-3 py-2 border border-slate-300 text-sm focus:outline-none focus:ring-1 focus:ring-[#1B3A6B] focus:border-[#1B3A6B]" placeholder="Jane Smith" />
+              </div>
+              <div>
+                <label htmlFor="c-email" className="block text-xs font-semibold text-slate-700 uppercase tracking-wide mb-1.5">Email <span className="text-red-600">*</span></label>
+                <input id="c-email" type="email" value={form.email} onChange={update('email')} required className="w-full px-3 py-2 border border-slate-300 text-sm focus:outline-none focus:ring-1 focus:ring-[#1B3A6B] focus:border-[#1B3A6B]" placeholder="jane@company.com" />
+              </div>
+            </div>
+            <div>
+              <label htmlFor="c-subject" className="block text-xs font-semibold text-slate-700 uppercase tracking-wide mb-1.5">Subject</label>
+              <select id="c-subject" value={form.subject} onChange={update('subject')} className="w-full px-3 py-2 border border-slate-300 text-sm focus:outline-none focus:ring-1 focus:ring-[#1B3A6B] focus:border-[#1B3A6B]">
+                <option value="">Select a topic...</option>
+                <option value="General Inquiry">General Inquiry</option>
+                <option value="Technical Support">Technical Support</option>
+                <option value="Feature Request">Feature Request</option>
+                <option value="Partnership">Partnership / Integration</option>
+                <option value="Bug Report">Bug Report</option>
+              </select>
+            </div>
+            <div>
+              <label htmlFor="c-msg" className="block text-xs font-semibold text-slate-700 uppercase tracking-wide mb-1.5">Message <span className="text-red-600">*</span></label>
+              <textarea id="c-msg" value={form.message} onChange={update('message')} required rows={5} className="w-full px-3 py-2 border border-slate-300 text-sm focus:outline-none focus:ring-1 focus:ring-[#1B3A6B] focus:border-[#1B3A6B] resize-none" placeholder="How can we help?" />
+            </div>
+            <button type="submit" disabled={status === 'sending' || !form.name.trim() || !form.email.trim() || !form.message.trim()} className={`w-full py-2.5 px-4 font-bold uppercase tracking-wide text-sm transition-colors duration-150 flex items-center justify-center gap-2 ${status === 'sending' || !form.name.trim() || !form.email.trim() || !form.message.trim() ? 'bg-slate-300 text-slate-600 cursor-not-allowed' : 'bg-[#1B3A6B] text-white hover:bg-[#0A2540] cursor-pointer'}`}>
+              {status === 'sending' ? <><Loader2 className="w-4 h-4 animate-spin" /> Sending...</> : 'Submit Message'}
+            </button>
+          </div>
+          <div className="bg-slate-50 border-t border-slate-200 px-5 py-3">
+            <p className="text-[10px] text-slate-500">Or email directly: <a href="mailto:support@clearpathsbaloan.com" className="text-[#1B3A6B] font-medium hover:underline">support@clearpathsbaloan.com</a></p>
+          </div>
+        </form>
+      )}
     </div>
   );
 }

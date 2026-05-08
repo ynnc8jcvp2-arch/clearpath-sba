@@ -50,22 +50,21 @@ export function UserProfile() {
       {/* Profile Button */}
       <button
         onClick={() => setMenuOpen(!menuOpen)}
-        className="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-slate-100 transition-colors duration-150 text-sm"
+        className="flex items-center gap-2 px-2 py-1.5 hover:bg-[#1B3A6B] transition-colors duration-150 text-sm cursor-pointer"
       >
         {/* Avatar */}
-        <div className="w-8 h-8 bg-[#1B3A6B] text-white rounded-full flex items-center justify-center font-bold text-xs">
+        <div className="w-7 h-7 bg-white text-[#0A2540] flex items-center justify-center font-bold text-[10px]">
           {initials}
         </div>
 
         {/* Name */}
-        <div className="text-left">
-          <p className="font-semibold text-slate-900">{displayName}</p>
-          <p className="text-xs text-slate-600 hidden sm:block truncate max-w-xs">{email}</p>
+        <div className="text-left hidden sm:block">
+          <p className="font-semibold text-white text-xs">{displayName}</p>
         </div>
 
         {/* Chevron */}
         <ChevronDown
-          className={`w-4 h-4 text-slate-600 transition-transform duration-200 ${
+          className={`w-3.5 h-3.5 text-slate-300 transition-transform duration-200 ${
             menuOpen ? 'rotate-180' : ''
           }`}
         />
@@ -73,7 +72,7 @@ export function UserProfile() {
 
       {/* Dropdown Menu */}
       {menuOpen && (
-        <div className="absolute right-0 mt-2 w-56 bg-white border border-slate-200 rounded-lg shadow-lg z-50 overflow-hidden">
+        <div className="absolute right-0 mt-1 w-56 bg-white border border-slate-300 shadow-lg z-50 overflow-hidden">
           {/* User Info */}
           <div className="px-4 py-3 border-b border-slate-200 bg-slate-50">
             <p className="font-semibold text-slate-900 text-sm">{displayName}</p>
@@ -83,7 +82,7 @@ export function UserProfile() {
           {/* Sign Out Button */}
           <button
             onClick={handleSignOut}
-            className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-700 hover:bg-red-50 transition-colors duration-150"
+            className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-red-700 hover:bg-red-50 transition-colors duration-150 cursor-pointer"
           >
             <LogOut className="w-4 h-4" />
             Sign Out
