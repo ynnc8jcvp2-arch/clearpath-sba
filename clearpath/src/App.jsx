@@ -24,6 +24,9 @@ import GenerativeFeatures from './domains/sba-loans/components/GenerativeFeature
 import { PrincipalInterestChart, RemainingBalanceChart } from './domains/sba-loans/components/AmortizationCharts';
 import PremiumForm, { PremiumRadioOption, PremiumCheckboxOption, PremiumInput, PremiumSelect } from './domains/sba-loans/components/PremiumForm';
 
+// ── Turnstile CAPTCHA ──
+import { Turnstile, verifyTurnstileToken } from './components/Turnstile';
+
 // ── Surety Bond Domain Components (Commercial Bond Underwriting) ──
 import SuretyDashboard from './domains/surety/components/SuretyDashboard';
 import SpreadingEngine from './domains/surety/components/SpreadingEngine';
@@ -1506,24 +1509,37 @@ function ContactPage() {
   const [form, setForm] = useState({ name: '', email: '', subject: '', message: '' });
   const [status, setStatus] = useState(null);
   const [errorMsg, setErrorMsg] = useState('');
+  const [captchaToken, setCaptchaToken] = useState(null);
 
   const update = (field) => (e) => setForm(f => ({ ...f, [field]: e.target.value }));
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!form.name.trim() || !form.email.trim() || !form.message.trim()) return;
+
+    // Verify CAPTCHA if token available
+    if (captchaToken) {
+      const valid = await verifyTurnstileToken(captchaToken);
+      if (!valid) {
+        setErrorMsg('CAPTCHA verification failed. Please try again.');
+        setStatus('error');
+        return;
+      }
+    }
+
     setStatus('sending');
     setErrorMsg('');
     try {
       const res = await fetch('/api/v1/contact', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(form),
+        body: JSON.stringify({ ...form, captchaToken }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Submission failed');
       setStatus('success');
       setForm({ name: '', email: '', subject: '', message: '' });
+      setCaptchaToken(null);
     } catch (err) {
       setErrorMsg(err.message);
       setStatus('error');
@@ -1581,6 +1597,7 @@ function ContactPage() {
               <label htmlFor="c-msg" className="block text-xs font-semibold text-slate-700 uppercase tracking-wide mb-1.5">Message <span className="text-red-600">*</span></label>
               <textarea id="c-msg" value={form.message} onChange={update('message')} required rows={5} className="w-full px-3 py-2 border border-slate-300 text-sm focus:outline-none focus:ring-1 focus:ring-[#1B3A6B] focus:border-[#1B3A6B] resize-none" placeholder="How can we help?" />
             </div>
+            <Turnstile onVerify={setCaptchaToken} action="contact" />
             <button type="submit" disabled={status === 'sending' || !form.name.trim() || !form.email.trim() || !form.message.trim()} className={`w-full py-2.5 px-4 font-bold uppercase tracking-wide text-sm transition-colors duration-150 flex items-center justify-center gap-2 ${status === 'sending' || !form.name.trim() || !form.email.trim() || !form.message.trim() ? 'bg-slate-300 text-slate-600 cursor-not-allowed' : 'bg-[#1B3A6B] text-white hover:bg-[#0A2540] cursor-pointer'}`}>
               {status === 'sending' ? <><Loader2 className="w-4 h-4 animate-spin" /> Sending...</> : 'Submit Message'}
             </button>
