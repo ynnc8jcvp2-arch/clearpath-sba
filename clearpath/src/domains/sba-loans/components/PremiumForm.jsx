@@ -78,9 +78,10 @@ export function PremiumForm({
             </button>
 
             <div className="flex items-center gap-3">
-              {!isLastStep && onNext && (
+              {/* Show next/submit button — works whether onNext or onSubmit is provided */}
+              {(onNext || onSubmit) && (
                 <button
-                  onClick={onNext}
+                  onClick={isLastStep && onSubmit ? onSubmit : onNext}
                   disabled={nextDisabled}
                   className={`inline-flex items-center gap-2 font-semibold text-sm px-4 py-2.5 rounded-none border transition-colors duration-150 cursor-pointer uppercase tracking-wide
                     ${nextDisabled
@@ -88,22 +89,7 @@ export function PremiumForm({
                       : 'bg-[#1B3A6B] text-white border-[#0A2540] hover:bg-[#0A2540]'
                     }`}
                 >
-                  {nextLabel}
-                  <ChevronRight className="w-4 h-4" />
-                </button>
-              )}
-
-              {isLastStep && onSubmit && (
-                <button
-                  onClick={onSubmit}
-                  disabled={nextDisabled}
-                  className={`inline-flex items-center gap-2 font-semibold text-sm px-4 py-2.5 rounded-none border transition-colors duration-150 cursor-pointer uppercase tracking-wide
-                    ${nextDisabled
-                      ? 'bg-slate-300 text-slate-600 border-slate-400 cursor-not-allowed'
-                      : 'bg-[#1B3A6B] text-white border-[#0A2540] hover:bg-[#0A2540]'
-                    }`}
-                >
-                  {submitLabel}
+                  {isLastStep ? (submitLabel !== 'Submit' ? submitLabel : nextLabel) : nextLabel}
                   <ChevronRight className="w-4 h-4" />
                 </button>
               )}

@@ -2,7 +2,7 @@
 // Commercial surety bond risk analysis and document processing
 // Part of the modular monolith: shared document parser with SBA domain
 
-import { Upload, FileText, TrendingUp, AlertCircle, CheckCircle, Zap, Loader2 } from 'lucide-react';
+import { Upload, FileText, TrendingUp, AlertCircle, CheckCircle, Zap, Loader2, Check } from 'lucide-react';
 import { useState } from 'react';
 
 export function SuretyDashboard({ onUploadDocument, onNavigate }) {
@@ -150,27 +150,23 @@ export function SuretyDashboard({ onUploadDocument, onNavigate }) {
         {/* Analysis Tools Section */}
         <div className="space-y-4">
           {/* As-Allowed Spreading Engine */}
-          <div className="bg-gradient-to-br from-[#1B3A6B] to-[#0A2540] border border-[#1B3A6B] rounded-sm overflow-hidden shadow-sm">
-            <div className="px-4 py-4 flex items-start gap-3">
-              <div className="flex-shrink-0 pt-0.5">
-                <TrendingUp className="w-5 h-5 text-blue-300" />
-              </div>
-              <div className="flex-1">
-                <h3 className="text-sm font-bold text-white uppercase tracking-wide">
-                  As-Allowed Spreading Engine
-                </h3>
-                <p className="text-xs text-slate-200 mt-1">
-                  Bond-specific financial analysis using SBA-approved spreading methodologies
-                </p>
+          <div className="bg-white border border-slate-300 overflow-hidden">
+            <div className="bg-[#0A2540] px-4 py-3 flex items-center gap-3 border-b border-[#1B3A6B]">
+              <TrendingUp className="w-4 h-4 text-blue-300 shrink-0" />
+              <div>
+                <h3 className="text-xs font-bold text-white uppercase tracking-wide">As-Allowed Spreading Engine</h3>
+                <p className="text-[11px] text-slate-300 mt-0.5">SBA-approved spreading methodologies</p>
               </div>
             </div>
-            <div className="px-4 py-4 bg-[#0A2540]/50 border-t border-[#1B3A6B] text-xs text-slate-100 space-y-2">
-              <p>SBA 13(g)(2) spreading methodologies</p>
-              <p>Industry-adjusted financial metrics</p>
-              <p>Guarantor capacity analysis</p>
+            <div className="p-4 space-y-3">
+              <ul className="text-xs text-slate-600 space-y-1.5">
+                <li className="flex items-center gap-2"><CheckCircle className="w-3.5 h-3.5 text-slate-400 shrink-0" /> SBA 13(g)(2) spreading methodologies</li>
+                <li className="flex items-center gap-2"><CheckCircle className="w-3.5 h-3.5 text-slate-400 shrink-0" /> Industry-adjusted financial metrics</li>
+                <li className="flex items-center gap-2"><CheckCircle className="w-3.5 h-3.5 text-slate-400 shrink-0" /> Guarantor capacity analysis</li>
+              </ul>
               <button
                 onClick={() => onNavigate('spreading')}
-                className="mt-4 w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-sm uppercase tracking-wide text-xs transition-colors"
+                className="w-full bg-[#1B3A6B] hover:bg-[#0A2540] text-white font-bold py-2.5 px-4 uppercase tracking-wide text-xs transition-colors duration-150"
               >
                 Open Spreading Engine
               </button>
@@ -178,27 +174,23 @@ export function SuretyDashboard({ onUploadDocument, onNavigate }) {
           </div>
 
           {/* WIP Analyzer */}
-          <div className="bg-gradient-to-br from-[#0A2540] to-[#1B3A6B] border border-[#0A2540] rounded-sm overflow-hidden shadow-sm">
-            <div className="px-4 py-4 flex items-start gap-3">
-              <div className="flex-shrink-0 pt-0.5">
-                <TrendingUp className="w-5 h-5 text-amber-300" />
-              </div>
-              <div className="flex-1">
-                <h3 className="text-sm font-bold text-white uppercase tracking-wide">
-                  WIP Analyzer
-                </h3>
-                <p className="text-xs text-slate-200 mt-1">
-                  Work-in-Progress monitoring for contractor surety underwriting
-                </p>
+          <div className="bg-white border border-slate-300 overflow-hidden">
+            <div className="bg-[#0A2540] px-4 py-3 flex items-center gap-3 border-b border-[#1B3A6B]">
+              <TrendingUp className="w-4 h-4 text-amber-300 shrink-0" />
+              <div>
+                <h3 className="text-xs font-bold text-white uppercase tracking-wide">WIP Analyzer</h3>
+                <p className="text-[11px] text-slate-300 mt-0.5">Contractor work-in-progress monitoring</p>
               </div>
             </div>
-            <div className="px-4 py-4 bg-[#1B3A6B]/50 border-t border-[#0A2540] text-xs text-slate-100 space-y-2">
-              <p>Job-by-job WIP analysis</p>
-              <p>Profitability trending</p>
-              <p>Contingent liability assessment</p>
+            <div className="p-4 space-y-3">
+              <ul className="text-xs text-slate-600 space-y-1.5">
+                <li className="flex items-center gap-2"><CheckCircle className="w-3.5 h-3.5 text-slate-400 shrink-0" /> Job-by-job WIP analysis</li>
+                <li className="flex items-center gap-2"><CheckCircle className="w-3.5 h-3.5 text-slate-400 shrink-0" /> Profitability trending</li>
+                <li className="flex items-center gap-2"><CheckCircle className="w-3.5 h-3.5 text-slate-400 shrink-0" /> Contingent liability assessment</li>
+              </ul>
               <button
                 onClick={() => onNavigate('wip')}
-                className="mt-4 w-full bg-amber-600 hover:bg-amber-700 text-white font-bold py-2 px-4 rounded-sm uppercase tracking-wide text-xs transition-colors"
+                className="w-full bg-[#1B3A6B] hover:bg-[#0A2540] text-white font-bold py-2.5 px-4 uppercase tracking-wide text-xs transition-colors duration-150"
               >
                 Open WIP Analyzer
               </button>

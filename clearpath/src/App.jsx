@@ -855,7 +855,7 @@ function AmortizationTerminal({ nav, user }) {
                 <p className="text-xs mt-0.5">Sign in to access loan calculation and term sheet generation powered by your backend API.</p>
               </div>
             </div>
-            <button onClick={() => window.scrollTo({ top: 0 })} className={T.btnPrimary + ' text-xs py-1.5 px-3 shrink-0'}>
+            <button onClick={() => signInWithGoogle().catch(console.error)} className={T.btnPrimary + ' text-xs py-1.5 px-3 shrink-0'}>
               Sign In
             </button>
           </div>
@@ -1113,8 +1113,6 @@ function AmortizationTerminal({ nav, user }) {
                 </table>
               </div>
 
-              <div className="border-t border-slate-200 p-4">
-              </div>
             </div>
           </div>
         </div>
@@ -1467,8 +1465,6 @@ function ProgramComparison() {
         </table>
       </div>
 
-      <div className="grid md:grid-cols-2 gap-4">
-      </div>
     </div>
   );
 }
