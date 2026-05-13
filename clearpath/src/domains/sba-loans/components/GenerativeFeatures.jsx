@@ -1,5 +1,5 @@
 // ── Generative Features Panel ──
-// Prominent feature cards for AI-powered parameter extraction and term sheet generation
+// Prominent feature cards for structured parameter extraction and term sheet generation
 // Elevates the Extract Parameters and Compile Term Sheet functionality with clear status indicators
 
 import { Zap, FileText, Loader2 } from 'lucide-react';
@@ -17,42 +17,44 @@ export function GenerativeFeatures({
   extractComplete = false,
 }) {
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
       {/* ── Feature 1: Extract Parameters ── */}
-      <div className="bg-white border border-slate-300 overflow-hidden">
-        <div className="bg-[#0A2540] px-5 py-3 flex items-center gap-3 border-b border-[#1B3A6B]">
-          <Zap className="w-4 h-4 text-yellow-300 shrink-0" />
-          <div>
-            <h3 className="text-xs font-bold text-white uppercase tracking-wide">
+      <div className="bg-white border border-slate-200 rounded-lg overflow-hidden shadow-sm">
+        <div className="bg-gradient-to-r from-[#1B3A6B] to-[#0A2540] px-6 py-4 flex items-start gap-4">
+          <div className="flex-shrink-0 pt-1">
+            <Zap className="w-6 h-6 text-yellow-300" />
+          </div>
+          <div className="flex-1">
+            <h3 className="text-lg font-bold text-white uppercase tracking-wide">
               Generate Loan Parameters
             </h3>
-            <p className="text-[11px] text-slate-300 mt-0.5">
-              AI extraction from deal notes
+            <p className="text-sm text-slate-200 mt-1">
+              Structured extraction from deal notes
             </p>
           </div>
         </div>
 
-        <div className="p-4 space-y-3">
+        <div className="p-6 space-y-4">
           <div>
-            <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wide mb-1.5">
-              Deal Notes &amp; Context
+            <label className="block text-sm font-semibold text-slate-700 mb-2">
+              Deal Notes & Context
             </label>
             <textarea
               value={dealNotes}
               onChange={(e) => onDealNotesChange(e.target.value)}
               disabled={extractLoading}
               placeholder="Paste client notes, business summary, or deal structure details..."
-              className="w-full h-20 px-3 py-2 border border-slate-300 bg-slate-50 text-sm focus:outline-none focus:ring-1 focus:ring-[#1B3A6B] focus:border-[#1B3A6B] disabled:opacity-50 resize-none"
+              className="w-full h-24 px-3 py-2 border border-slate-300 rounded bg-slate-50 text-sm focus:outline-none focus:ring-2 focus:ring-[#1B3A6B] focus:border-transparent disabled:opacity-50"
             />
           </div>
 
           <button
             onClick={onExtractParameters}
             disabled={extractLoading || !dealNotes.trim()}
-            className={`w-full py-2.5 px-4 font-bold uppercase tracking-wide transition-colors duration-150 flex items-center justify-center gap-2 text-sm ${
+            className={`w-full py-3 px-4 rounded font-bold uppercase tracking-wide transition-all duration-200 flex items-center justify-center gap-2 ${
               extractLoading || !dealNotes.trim()
                 ? 'bg-slate-300 text-slate-600 cursor-not-allowed'
-                : 'bg-[#1B3A6B] text-white hover:bg-[#0A2540]'
+                : 'bg-[#1B3A6B] text-white hover:bg-[#0A2540] active:scale-95'
             }`}
           >
             {extractLoading ? (
@@ -70,79 +72,100 @@ export function GenerativeFeatures({
 
           {/* Status Indicator */}
           {extractStatus && (
-            <div className={`px-3 py-2 text-xs font-medium border ${
-              extractStatus === 'success' ? 'bg-green-50 text-green-800 border-green-300'
-              : extractStatus === 'error' ? 'bg-red-50 text-red-800 border-red-300'
-              : 'bg-blue-50 text-blue-800 border-blue-300'
-            }`}>
-              {extractStatus === 'success' && '✓ Parameters extracted and populated'}
-              {extractStatus === 'error' && '✗ Extraction failed — try again'}
-              {extractStatus === 'loading' && 'Extracting…'}
+            <div
+              className={`p-3 rounded text-sm font-medium text-center ${
+                extractStatus === 'success'
+                  ? 'bg-green-50 text-green-800 border border-green-200'
+                  : extractStatus === 'error'
+                  ? 'bg-red-50 text-red-800 border border-red-200'
+                  : 'bg-blue-50 text-blue-800 border border-blue-200'
+              }`}
+            >
+              {extractStatus === 'success' && 'Parameters extracted and populated'}
+              {extractStatus === 'error' && 'Error extracting parameters. Please try again.'}
+              {extractStatus === 'loading' && 'Extracting parameters...'}
             </div>
           )}
+
+          <p className="text-xs text-slate-500 text-center">
+            BondSBA Terminal reads your notes and populates submission parameters automatically
+          </p>
         </div>
       </div>
 
       {/* ── Feature 2: Compile Term Sheet ── */}
-      <div className="bg-white border border-slate-300 overflow-hidden">
-        <div className="bg-[#0A2540] px-5 py-3 flex items-center gap-3 border-b border-[#1B3A6B]">
-          <FileText className="w-4 h-4 text-blue-300 shrink-0" />
-          <div>
-            <h3 className="text-xs font-bold text-white uppercase tracking-wide">
+      <div className="bg-white border border-slate-200 rounded-lg overflow-hidden shadow-sm">
+        <div className="bg-gradient-to-r from-[#0A2540] to-[#1B3A6B] px-6 py-4 flex items-start gap-4">
+          <div className="flex-shrink-0 pt-1">
+            <FileText className="w-6 h-6 text-blue-300" />
+          </div>
+          <div className="flex-1">
+            <h3 className="text-lg font-bold text-white uppercase tracking-wide">
               Create Term Sheet
             </h3>
-            <p className="text-[11px] text-slate-300 mt-0.5">
-              AI-generated institutional document
+            <p className="text-sm text-slate-200 mt-1">
+              Institutional submission document
             </p>
           </div>
         </div>
 
-        <div className="p-4 space-y-3">
-          <div className="bg-slate-50 border border-slate-200 p-3">
-            <p className="text-[10px] font-bold text-slate-700 uppercase tracking-wide mb-2">Prerequisites</p>
-            <div className="space-y-1">
-              <div className="flex items-center gap-2 text-xs">
-                <div className={`w-1.5 h-1.5 rounded-full ${loanComplete ? 'bg-green-600' : 'bg-slate-400'}`} />
-                <span className={loanComplete ? 'text-green-700 font-medium' : 'text-slate-600'}>
-                  Loan parameters {loanComplete ? '— complete' : '— pending'}
-                </span>
-              </div>
-              <div className="flex items-center gap-2 text-xs">
-                <div className={`w-1.5 h-1.5 rounded-full ${extractComplete ? 'bg-green-600' : 'bg-slate-400'}`} />
-                <span className={extractComplete ? 'text-green-700 font-medium' : 'text-slate-600'}>
-                  AI extraction {extractComplete ? '— complete' : '— optional'}
-                </span>
-              </div>
-            </div>
+        <div className="p-6 space-y-4">
+          <div className="bg-slate-50 p-4 rounded border border-slate-200">
+            <p className="text-sm text-slate-700">
+              <span className="font-semibold">Prerequisites:</span>
+            </p>
+            <ul className="text-sm text-slate-600 mt-2 space-y-1 ml-4 list-disc">
+              <li className={extractComplete ? 'text-green-700' : 'text-slate-600'}>
+                Loan parameters: {extractComplete ? 'Complete' : 'Pending'}
+              </li>
+              <li className={loanComplete ? 'text-green-700' : 'text-slate-600'}>
+                Loan details: {loanComplete ? 'Complete' : 'Pending'}
+              </li>
+            </ul>
           </div>
 
           <button
             onClick={onCompileTermSheet}
             disabled={compileLoading || !loanComplete}
-            className={`w-full py-2.5 px-4 font-bold uppercase tracking-wide transition-colors duration-150 flex items-center justify-center gap-2 text-sm ${
+            className={`w-full py-3 px-4 rounded font-bold uppercase tracking-wide transition-all duration-200 flex items-center justify-center gap-2 ${
               compileLoading || !loanComplete
                 ? 'bg-slate-300 text-slate-600 cursor-not-allowed'
-                : 'bg-[#0A2540] text-white hover:bg-[#1B3A6B]'
+                : 'bg-[#0A2540] text-white hover:bg-[#1B3A6B] active:scale-95'
             }`}
           >
             {compileLoading ? (
-              <><Loader2 className="w-4 h-4 animate-spin" />Generating…</>
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Generating Term Sheet...
+              </>
             ) : (
-              <><FileText className="w-4 h-4" />Create Term Sheet</>
+              <>
+                <FileText className="w-4 h-4" />
+                Create Term Sheet
+              </>
             )}
           </button>
 
+          {/* Status Indicator */}
           {compileStatus && (
-            <div className={`px-3 py-2 text-xs font-medium border ${
-              compileStatus === 'success' ? 'bg-green-50 text-green-800 border-green-300'
-              : compileStatus === 'error' ? 'bg-red-50 text-red-800 border-red-300'
-              : 'bg-blue-50 text-blue-800 border-blue-300'
-            }`}>
-              {compileStatus === 'success' && '✓ Term sheet generated — modal open'}
-              {compileStatus === 'error' && '✗ Generation failed — try again'}
-              {compileStatus === 'loading' && 'Generating…'}
+            <div
+              className={`p-3 rounded text-sm font-medium text-center ${
+                compileStatus === 'success'
+                  ? 'bg-green-50 text-green-800 border border-green-200'
+                  : compileStatus === 'error'
+                  ? 'bg-red-50 text-red-800 border border-red-200'
+                  : 'bg-blue-50 text-blue-800 border border-blue-200'
+              }`}
+            >
+              {compileStatus === 'success' && 'Term sheet generated & ready for download'}
+              {compileStatus === 'error' && 'Error generating term sheet. Please try again.'}
+              {compileStatus === 'loading' && 'Generating term sheet...'}
             </div>
           )}
+
+          <p className="text-xs text-slate-500 text-center">
+            Generates professional term sheet suitable for executive review
+          </p>
         </div>
       </div>
     </div>

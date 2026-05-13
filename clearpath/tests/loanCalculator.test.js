@@ -18,7 +18,7 @@ import { assert, runTests, usd, pct } from './setup.js';
 const monthlyPaymentTests = {
   'Monthly Payment: Standard 7-year SBA loan': () => {
     const monthly = calculateMonthlyPayment(500000, 10.5, 7);
-    // Standard amortization: P * r*(1+r)^n / ((1+r)^n - 1), r=10.5%/12, n=84
+    // Using standard amortization formula
     assert.approximately(monthly, 8430.34, 5, 'Monthly payment should be ~$8,430.34');
   },
 

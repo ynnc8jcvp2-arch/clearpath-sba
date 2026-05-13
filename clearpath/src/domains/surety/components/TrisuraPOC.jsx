@@ -16,6 +16,7 @@
  */
 
 import React, { useState } from 'react';
+import { getAuthToken } from '../../../shared/utils/supabaseClient.js';
 import {
   TrendingUp,
   DollarSign,
@@ -90,11 +91,14 @@ export function SuretyAnalysisPOC() {
         spreadingOptions: { underwriter: 'System' }
       };
 
+      const token = await getAuthToken();
+      const authHeader = token ? { 'Authorization': `Bearer ${token}` } : {};
+
       const response = await fetch('/api/v1/surety/analyze', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${sessionStorage.getItem('authToken') || 'demo-token'}`
+          ...authHeader,
         },
         body: JSON.stringify(requestBody)
       });
@@ -179,7 +183,7 @@ export function SuretyAnalysisPOC() {
             <h1 className="text-3xl font-bold text-slate-900">Surety Bond Analysis</h1>
           </div>
           <p className="text-slate-600">
-            AI-powered contractor surety underwriting with as-allowed spreading and bond exposure analysis
+            Contractor surety underwriting with as-allowed spreading and bond exposure analysis
           </p>
         </div>
       </div>

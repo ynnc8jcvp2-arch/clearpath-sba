@@ -16,6 +16,8 @@ const testFiles = [
   'loanCalculator.test.js',
   'termSheetGenerator.test.js',
   'database.test.js',
+  'auth-touchpoints.test.js',
+  'launch-readiness.test.js',
 ];
 
 const results = {

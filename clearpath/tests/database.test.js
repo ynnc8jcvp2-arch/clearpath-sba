@@ -238,7 +238,7 @@ const suretyTests = {
     const mockSupabase = createMockSupabaseClient();
     initializeSuretyDB(mockSupabase);
 
-    const result = await listApplications({ status: 'new', riskLevel: 'moderate' });
+    const result = await listApplications({ userId: 'user_123', status: 'new', riskLevel: 'moderate', limit: 5 });
 
     assert.isArray(result, 'Should return array');
   },

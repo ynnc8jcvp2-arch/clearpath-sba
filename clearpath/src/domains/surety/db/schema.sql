@@ -120,6 +120,7 @@ CREATE INDEX idx_surety_applications_status ON surety_applications(status);
 CREATE INDEX idx_surety_applications_risk_level ON surety_applications(overall_risk_level);
 CREATE INDEX idx_surety_applications_created_at ON surety_applications(created_at DESC);
 CREATE INDEX idx_surety_applications_applicant ON surety_applications(applicant_name);
+CREATE INDEX idx_surety_applications_created_by ON surety_applications(created_by);
 
 CREATE INDEX idx_surety_analyses_application_id ON surety_analyses(application_id);
 CREATE INDEX idx_surety_analyses_created_at ON surety_analyses(created_at DESC);
@@ -141,17 +142,56 @@ ALTER TABLE surety_documents ENABLE ROW LEVEL SECURITY;
 ALTER TABLE surety_risk_factors ENABLE ROW LEVEL SECURITY;
 ALTER TABLE surety_recommendations ENABLE ROW LEVEL SECURITY;
 
--- RLS Policies (example - adjust based on your auth model)
--- Replace 'auth.uid()' with your actual user authentication logic
+-- RLS Policies: users can work only with their own application packets.
 CREATE POLICY "users_can_view_own_applications"
   ON surety_applications FOR SELECT
-  USING (true); -- Update this based on your auth model
+  USING (created_by = auth.uid()::text);
 
 CREATE POLICY "users_can_create_applications"
   ON surety_applications FOR INSERT
-  WITH CHECK (true); -- Update this based on your auth model
+  WITH CHECK (created_by = auth.uid()::text);
 
 CREATE POLICY "users_can_update_own_applications"
   ON surety_applications FOR UPDATE
-  USING (true) -- Update this based on your auth model
-  WITH CHECK (true);
+  USING (created_by = auth.uid()::text)
+  WITH CHECK (created_by = auth.uid()::text);
+
+CREATE POLICY "users_can_view_own_analyses"
+  ON surety_analyses FOR SELECT
+  USING (
+    EXISTS (
+      SELECT 1 FROM surety_applications sa
+      WHERE sa.id = surety_analyses.application_id
+      AND sa.created_by = auth.uid()::text
+    )
+  );
+
+CREATE POLICY "users_can_view_own_documents"
+  ON surety_documents FOR SELECT
+  USING (
+    EXISTS (
+      SELECT 1 FROM surety_applications sa
+      WHERE sa.id = surety_documents.application_id
+      AND sa.created_by = auth.uid()::text
+    )
+  );
+
+CREATE POLICY "users_can_view_own_risk_factors"
+  ON surety_risk_factors FOR SELECT
+  USING (
+    EXISTS (
+      SELECT 1 FROM surety_applications sa
+      WHERE sa.id = surety_risk_factors.application_id
+      AND sa.created_by = auth.uid()::text
+    )
+  );
+
+CREATE POLICY "users_can_view_own_recommendations"
+  ON surety_recommendations FOR SELECT
+  USING (
+    EXISTS (
+      SELECT 1 FROM surety_applications sa
+      WHERE sa.id = surety_recommendations.application_id
+      AND sa.created_by = auth.uid()::text
+    )
+  );

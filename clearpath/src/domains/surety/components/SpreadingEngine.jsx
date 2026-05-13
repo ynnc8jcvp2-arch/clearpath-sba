@@ -2,8 +2,8 @@
 // Bond-specific financial analysis using SBA 13(g)(2) methodologies
 // Supports contractor surety underwriting with industry-adjusted metrics
 
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { ArrowLeft, TrendingUp, AlertCircle } from 'lucide-react';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { ArrowLeft, TrendingUp, AlertCircle, ShieldAlert } from 'lucide-react';
 import { useState } from 'react';
 
 export function SpreadingEngine({ onBack }) {
@@ -42,6 +42,13 @@ export function SpreadingEngine({ onBack }) {
     : [];
 
   const usd = (v) => v.toLocaleString('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 });
+  const followUpItems = results
+    ? [
+        results.profitMargin < 5 ? 'Ask for margin support and normalization detail before relying on EBITDA.' : 'Margin support looks stronger, so follow-up can focus on sustainability and trend consistency.',
+        results.ebitda <= 0 ? 'Treat this file as high-friction for bond capacity until earnings support improves.' : 'EBITDA is positive, which gives the underwriter a cleaner starting point for capacity discussion.',
+        results.grossProfit <= 0 ? 'Review contract mix and direct cost treatment before moving the file forward.' : 'Gross profit is present, but underwriter follow-up should still test job-level quality and recurring cost pressure.',
+      ]
+    : [];
 
   return (
     <div className="space-y-4">
@@ -59,7 +66,17 @@ export function SpreadingEngine({ onBack }) {
             As-Allowed Spreading Engine
           </h1>
           <p className="text-xs text-slate-600 mt-0.5">
-            SBA 13(g)(2) bond-specific financial analysis
+            Normalize contractor financials before full review using a simple as-allowed underwriting lens.
+          </p>
+        </div>
+      </div>
+
+      <div className="bg-blue-50 border border-blue-200 rounded-sm p-4 flex items-start gap-3">
+        <ShieldAlert className="w-4 h-4 text-blue-700 shrink-0 mt-0.5" />
+        <div className="text-xs space-y-1">
+          <p className="font-semibold text-blue-950">What this helps you catch</p>
+          <p className="text-blue-900">
+            Use this step to spot thin operating margins, weak earnings support, and financial follow-up items before the contractor file reaches full underwriting review.
           </p>
         </div>
       </div>
@@ -71,6 +88,9 @@ export function SpreadingEngine({ onBack }) {
           <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wide">
             Financial Data Entry
           </h2>
+          <p className="text-xs text-slate-600 -mt-2">
+            Enter the numbers you have today to convert raw financials into a cleaner underwriter-facing starting point.
+          </p>
 
           {/* Input Fields */}
           <div className="space-y-3">
@@ -119,7 +139,7 @@ export function SpreadingEngine({ onBack }) {
             <ul className="space-y-1 text-slate-600 ml-3 list-disc">
               <li>Revenue — Gross receipts, less returns & allowances</li>
               <li>COGS — Direct materials, direct labor, allocated overhead</li>
-              <li>EBITDA — Operating income available to service bonds</li>
+              <li>EBITDA — Operating income available to support bond capacity discussions</li>
             </ul>
           </div>
         </div>
@@ -166,13 +186,27 @@ export function SpreadingEngine({ onBack }) {
                     <p className="font-bold mb-1">Financial Health: {results.healthScore}</p>
                     <p>
                       {results.healthScore === 'Strong'
-                        ? 'Contractor demonstrates strong cash generation and financial stability for bond support.'
+                        ? 'Contractor demonstrates stronger cash generation support, which gives the underwriter a cleaner basis for bond capacity follow-up.'
                         : results.healthScore === 'Adequate'
-                        ? 'Contractor profitability adequate but requires enhanced monitoring for contingent liabilities.'
-                        : 'Below-threshold profitability. Enhanced due diligence and higher bond reserves recommended.'}
+                        ? 'Contractor profitability appears workable, but the file still warrants closer follow-up around contingent liabilities and sustainability.'
+                        : 'Profitability looks thin for comfortable bond support, so this file should move forward with tighter underwriting follow-up.'}
                     </p>
                   </div>
                 </div>
+              </div>
+
+              <div className="bg-white border border-slate-300 rounded-sm p-4">
+                <p className="text-xs font-bold text-slate-900 uppercase tracking-wide mb-3">
+                  Underwriter Follow-Up
+                </p>
+                <ul className="space-y-2 text-xs text-slate-700">
+                  {followUpItems.map((item) => (
+                    <li key={item} className="flex items-start gap-2">
+                      <span className="mt-0.5 text-slate-400">•</span>
+                      <span>{item}</span>
+                    </li>
+                  ))}
+                </ul>
               </div>
 
               {/* Chart */}
@@ -196,7 +230,7 @@ export function SpreadingEngine({ onBack }) {
               <TrendingUp className="w-8 h-8 text-slate-400 mx-auto mb-2" />
               <p className="text-sm text-slate-700 font-medium">Enter financial data to view analysis</p>
               <p className="text-xs text-slate-600 mt-1">
-                Results will show gross profit, EBITDA, and bond service capacity
+                Results will show gross profit, EBITDA, and where the file may need more underwriting attention
               </p>
             </div>
           )}

@@ -66,7 +66,7 @@ export function SuretyApplicationForm() {
             Surety Bond Underwriting
           </h1>
           <p className="text-slate-400 text-lg">
-            AI-powered analysis for commercial surety bond applications
+            Structured analysis for commercial surety bond applications
           </p>
         </div>
 

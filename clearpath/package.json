@@ -1,11 +1,14 @@
 {
-  "name": "clearpath-sba",
+  "name": "bondsba-terminal",
   "version": "1.0.0",
+  "type": "module",
   "private": true,
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "node scripts/generate-seo-pages.mjs && vite build",
     "preview": "vite preview",
+    "ops:control": "bash scripts/ops-control-loop.sh",
+    "ops:verify": "bash scripts/ops-control-loop.sh --no-deploy",
     "test": "node tests/runAllTests.js",
     "test:calculator": "node tests/loanCalculator.test.js",
     "test:termsheet": "node tests/termSheetGenerator.test.js",

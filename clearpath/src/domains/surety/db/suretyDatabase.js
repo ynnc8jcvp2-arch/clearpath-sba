@@ -166,15 +166,18 @@ export async function createApplication(applicationData) {
 /**
  * Retrieve an application with all related data
  */
-export async function getApplication(applicationId) {
+export async function getApplication(applicationId, userId = null) {
   if (!supabase) throw new Error('Surety DB not initialized');
 
   try {
-    const { data: app, error: appError } = await supabase
+    let appQuery = supabase
       .from('surety_applications')
       .select('*')
-      .eq('id', applicationId)
-      .single();
+      .eq('id', applicationId);
+
+    if (userId) appQuery = appQuery.eq('user_id', userId);
+
+    const { data: app, error: appError } = await appQuery.single();
 
     if (appError) throw appError;
 
@@ -228,6 +231,7 @@ export async function listApplications(filters = {}) {
     let query = supabase.from('surety_applications').select('*');
 
     // Apply filters
+    if (filters.userId) query = query.eq('user_id', filters.userId);
     if (filters.status) query = query.eq('status', filters.status);
     if (filters.riskLevel) query = query.eq('overall_risk_level', filters.riskLevel);
     if (filters.applicantName)
@@ -237,6 +241,7 @@ export async function listApplications(filters = {}) {
     if (filters.endDate)
       query = query.lte('created_at', new Date(filters.endDate).toISOString());
 
+    if (filters.limit) query = query.limit(filters.limit);
     const { data, error } = await query.order('created_at', { ascending: false });
 
     if (error) throw error;

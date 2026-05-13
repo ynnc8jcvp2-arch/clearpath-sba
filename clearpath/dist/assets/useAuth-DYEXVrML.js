@@ -1,0 +1,1 @@
+import{r}from"./vendor-DKFbjzBK.js";import{A as o}from"./index-Cwiwx-Uy.js";function s(){const t=r.useContext(o);if(!t)throw new Error("useAuth must be used within AuthProvider");return t}export{s as u};
